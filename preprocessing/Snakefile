@@ -100,11 +100,15 @@ rule dereplicate:
 
 
 ################################################################################
-rule interleave:
-	input:  rules.dereplicate.output
-	output: os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq")
+rule sync:
+	input:  
+		rules.trim_galore.output[0],
+		rules.dereplicate.output
+	output: 
+		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_1.fastq"),
+		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_2.fastq"),
+		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_orphans.fastq")
 	params:
 		prefix = "{sample}"
-	shell: """
-		# Eli's Python script and command line options
-	"""
+	shell:
+		"scripts/sync.sh {input} {output}"
