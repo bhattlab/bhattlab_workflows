@@ -15,13 +15,11 @@ snakemake --configfile /path/to/config.yaml -s /path/to/classification/Snakefile
 ```
 
 
-Example configs and snakemake submits for all, conda install description
-
 # preprocessing 
 
-Jessy
+QC and data processing pipeline for raw short read sequencing data.
 
-0) multiplex check - Eli
+0) demultiplex check - Eli
 
 1) qc - fastqc
 
