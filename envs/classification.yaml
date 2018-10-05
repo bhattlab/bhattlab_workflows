@@ -1,0 +1,14 @@
+name: classification
+channels:
+  - bioconda
+  - conda-forge
+  - r
+dependencies:
+  - python>3.5
+  - kraken
+  - datrie
+  - r-ggplot2
+  - r-doby
+  - r-rcolorbrewer
+  - r-scales
+  - r-plyr
