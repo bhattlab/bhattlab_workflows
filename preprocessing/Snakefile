@@ -30,11 +30,15 @@ localrules:  interleave
 
 rule all:
 	input:
+		expand(os.path.join(PROJECT_DIR, "/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"), 
+		      , sample=SAMPLE_PREFIX),
+		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"), 
+		      , sample=SAMPLE_PREFIX)
 		expand(os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq"), sample=SAMPLE_PREFIX)
 
 ################################################################################
 rule pre_fastqc:
-	input: os.path.join(DATA_DIR, "{sample}_R{read}.fastq.gz")
+	input:  os.path.join(DATA_DIR, "{sample}_R{read}.fastq.gz")
 	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html")
 	threads: 1
 	shell: """
@@ -56,6 +60,11 @@ rule post_fastqc:
 	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
 	 """		
 
+################################################################################
+rule check_mutliplex_issues:
+	
+## Eli
+		
 ################################################################################
 rule trim_galore:
 	input:
@@ -90,9 +99,6 @@ rule dereplicate:
 	 	fwd = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE1.fastq"),
 		rev = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE2.fastq")
 	threads: 2
-	params:
-		start	= config['dereplicate']['start_trim'],
-		prefix	= "{sample}"
 	shell: """
 		seqtk rmdup {input.fwd} > {output.fwd}
 		seqtk rmdup {input.rev} > {output.rev}
@@ -103,8 +109,6 @@ rule dereplicate:
 rule interleave:
 	input:  rules.dereplicate.output
 	output: os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq")
-	params:
-		prefix = "{sample}"
 	shell: """
 		# Eli's Python script and command line options
 	"""
