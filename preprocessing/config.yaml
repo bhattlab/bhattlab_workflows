@@ -10,3 +10,5 @@ trim_galore:
   end_trim: 0
   min_read_length: 60
 
+rm_host_reads:
+  host_genome: /path/to/genome/fastq
