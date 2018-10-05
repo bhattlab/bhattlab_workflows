@@ -1,4 +1,4 @@
-name: meta_qc_sm
+name: preprocessing
 channels:
   - conda-forge
   - bioconda
