@@ -15,3 +15,18 @@ agreed steps:
 6) multiqc
 
 7) separate reference reads and give ref alignment stats
+
+
+# assembly
+
+spades
+
+megahit
+
+quast
+
+# classification
+
+kraken, barplots
+
+metaphlan, heatmaps
