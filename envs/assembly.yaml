@@ -1,0 +1,9 @@
+name: assembly
+channels:
+  - bioconda
+  #- conda-forge
+dependencies:
+  - python>3.5
+  - quast
+  - spades
+  - megahit

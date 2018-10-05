@@ -1,0 +1,2 @@
+assembler: "spades" #or 'megahit'
+sample_table: "bhattlab_workflows/assembly/example/samples.tsv"

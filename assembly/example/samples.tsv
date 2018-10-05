@@ -1,0 +1,3 @@
+Sample	Reads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]
+foo	a_1.fq,a_2.fq
+bar	b_1.fq,b_2.fq

@@ -1,0 +1,56 @@
+assembler = config['assembler'] #spades or megahit
+
+with open(config["sample_table"]) as inf:
+	insamps = inf.readlines()
+	data_dict = {read: files.split(",") for read, files in [l.strip().split("\t") for l in insamps]}
+
+def choose_assembly():
+	if assembler == 'spades':
+			return(rules.spades.output)
+	elif assembler == 'megahit':
+		return(rules.megahit.output)
+
+
+rule all:
+	input: expand("{sample}/quast/report.txt", sample = [s for s in data_dict])
+
+
+rule spades:
+	input: lambda wildcards: data_dict[wildcards.sample]
+	output: "{sample}/assembly/contigs.fasta"
+	resources:
+		time=lambda wildcards, attempt: 24 * attempt,
+		mem= lambda wildcards, attempt: 100 * attempt
+	run:
+		reads = data_dict[wildcards.sample]
+		if len(reads) == 3: #paired plus orphans
+			cmd = "spades.py --meta -1 {reads[0]} -2 {reads[1]} -s {reads[2]}"
+		elif len(reads) == 2: #paired
+			cmd = "spades.py --meta -1 {reads[0]} -2 {reads[1]}"
+		elif len(reads) == 1: #single-ended
+			cmd = "spades.py --meta -12 {reads[0]}"
+		cmd += " -o {wildcards.sample}/assembly/ -m {resources.mem}"
+		shell(cmd)
+
+rule megahit:
+	input: lambda wildcards: data_dict[wildcards.sample]
+	output: "{sample}/assembly/contigs.fasta"
+	run:
+		print("Uuuuuh....")
+
+rule assemble_final:
+	input: choose_assembly()
+	output:"{sample}/assembly.fa"
+	shell: "ln -s ../{input} {output}"
+
+rule quast:
+	input:
+		rules.assemble_final.output
+	output:
+		"{sample}/quast/report.txt"
+	resources:
+		mem=8,
+		time=1
+	shell:
+		"quast.py -o {wildcards.sample}/quast/ {input} --fast "
+
