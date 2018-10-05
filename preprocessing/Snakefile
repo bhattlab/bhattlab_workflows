@@ -78,14 +78,13 @@ rule trim_galore:
 		adaptor = config['trim_galore']['adaptors'],
 		q_min   = config['trim_galore']['quality']
 		left    = config['trim_galore']['start_trim']
-		right   = config['trim_galore']['end_trim']
+		min_len = config['trim_galore']['min_read_length']
 	shell: """
 		 mkdir -p {PROJECT_DIR}/qc/01_trimmed/
-		 # module load fastqc/0.11.2
-		 # module load trim_galore/0.4.2
 		 trim_galore --{params.adaptor} \
 			     --quality {params.q_min} \
-			     --hardtrim5 {params.left} --hardtrim3 {params.right} \
+			     --clip_R1 {params.left} --clip_R2 {params.left} \
+			     --length {params.min_len} \
 			     --output_dir {PROJECT_DIR}/qc/01_trimmed/ \
 			     --paired {input.fwd} {input.rev}
 	"""
@@ -100,6 +99,7 @@ rule dereplicate:
 		rev = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE2.fastq")
 	threads: 2
 	shell: """
+		mkdir -p {PROJECT_DIR}/qc/02_dereplicate/
 		seqtk rmdup {input.fwd} > {output.fwd}
 		seqtk rmdup {input.rev} > {output.rev}
 	"""
@@ -112,3 +112,18 @@ rule interleave:
 	shell: """
 		# Eli's Python script and command line options
 	"""
+
+################################################################################
+rule remove_host_reads:
+	input: rules.interleave.output
+	output:
+	params:
+		host_genome = config['rm_host_reads']['host_genome']
+	shell: """
+	# reference alignment to specified host
+	# Wh
+		
+	"""	
+
+		
+		
