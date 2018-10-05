@@ -1,6 +1,10 @@
-# preprocessing
+Example configs and snakemake submits for all, conda install description
 
-agreed steps:
+# preprocessing 
+
+Jessy
+
+0) multiplex check - Eli
 
 1) qc - fastqc
 
@@ -19,14 +23,16 @@ agreed steps:
 
 # assembly
 
-spades
+# smart memory allocation, multiplying runtime per attempts
 
-megahit
+spades - Eli
+
+megahit - jessy
 
 quast
 
 # classification
 
-kraken, barplots
+kraken, barplots - Eli
 
-metaphlan, heatmaps
+metaphlan, heatmaps - Ben
