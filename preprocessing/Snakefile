@@ -12,18 +12,11 @@ PROJECT_DIR/qc/00_qc_reports/post_fastqc
 PROJECT_DIR/qc/01_trimmed
 PROJECT_DIR/qc/02_dereplicate
 PROJECT_DIR/qc/03_interleave
-
-Run:
-snakemake --jobs 100 \
-		  -latency-wait 60 \
-		  --configfile CONFIG_PATH/config.json \
-		  --cluster-config CONFIG_PATH/clusterconfig.json \
-		  --profile scg
 '''
 
 ################################################################################
 # specify project directories
-DATA_DIR	= config["raw_reads_directory"]
+DATA_DIR    = config["raw_reads_directory"]
 PROJECT_DIR = config["output_directory"]
 
 ################################################################################
@@ -37,7 +30,7 @@ localrules:  interleave
 
 rule all:
 	input:
-		expand(os.path.join(PROJECT_DIR, "qc/03_interleave_seqtk/{sample}.fastq"), sample=SAMPLE_PREFIX)
+		expand(os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq"), sample=SAMPLE_PREFIX)
 
 ################################################################################
 rule pre_fastqc:
@@ -50,6 +43,18 @@ rule pre_fastqc:
 	   # module load fastqc/0.11.2
 	   fastqc {input} --outdir {PROJECT_DIR}/qc/00_qc_reports/pre_fastqc/
 	"""
+		
+################################################################################
+rule post_fastqc:
+	input:  rules.dereplicate.output
+	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html")
+	threads: 1
+	log: os.path.join(LOGS_DIR + "post_fastqc_{sample}_R{read}")
+	shell: """
+	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
+	   # module load fastqc/0.11.2
+	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
+	 """		
 
 ################################################################################
 rule trim_galore:
@@ -63,36 +68,18 @@ rule trim_galore:
 	params:
 		adaptor = config['trim_galore']['adaptors'],
 		q_min   = config['trim_galore']['quality']
+		left    = config['trim_galore']['start_trim']
+		right   = config['trim_galore']['end_trim']
 	shell: """
 		 mkdir -p {PROJECT_DIR}/qc/01_trimmed/
 		 # module load fastqc/0.11.2
 		 # module load trim_galore/0.4.2
 		 trim_galore --{params.adaptor} \
-					 --quality {params.q_min} \
-					 --output_dir {PROJECT_DIR}/qc/01_trimmed/ \
-					 --paired {input.fwd} {input.rev}
+			     --quality {params.q_min} \
+			     --hardtrim5 {params.left} --hardtrim3 {params.right} \
+			     --output_dir {PROJECT_DIR}/qc/01_trimmed/ \
+			     --paired {input.fwd} {input.rev}
 	"""
-
-# ################################################################################
-# uses the old dereplication software, SuperDeduper that cannot be wrapped into a conda environment for ease. Seqkit is the conda friendly alternative.
-# rule dereplicate:
-# 	input:
-# 	 	fwd = rules.trim_galore.output.fwd,
-# 		rev = rules.trim_galore.output.rev
-# 	output:
-# 	 	fwd = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE1.fastq"),
-# 		rev = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE2.fastq")
-# 	threads: 2
-# 	params:
-# 		start	= config['dereplicate']['start_trim'],
-# 		length	= config['dereplicate']['unique_length'],
-# 		prefix	= "{sample}"
-# 	shell: """
-# 		{DEDUP_DIR}/super_deduper -1 {input.fwd} -2 {input.rev} \
-# 			-p {PROJECT_DIR}/qc/02_dereplicate/{params.prefix} \
-# 			-- start {params.start} \
-# 			-- length {params.length}
-# 		 """
 
 ################################################################################
 rule dereplicate:
@@ -107,31 +94,17 @@ rule dereplicate:
 		start	= config['dereplicate']['start_trim'],
 		prefix	= "{sample}"
 	shell: """
-		seqtk trimfq -b {params.start} {input.fwd}| seqtk rmdup > {output.fwd}
-		seqtk trimfq -b {params.start} {input.rev}| seqtk rmdup > {output.rev}
+		seqtk rmdup {input.fwd} > {output.fwd}
+		seqtk rmdup {input.rev} > {output.rev}
 	"""
-
-################################################################################
-rule post_fastqc:
-	input:  rules.dereplicate.output
-	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html")
-	threads: 1
-	log: os.path.join(LOGS_DIR + "post_fastqc_{sample}_R{read}")
-	shell: """
-	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	   # module load fastqc/0.11.2
-	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	 """
 
 
 ################################################################################
 rule interleave:
 	input:  rules.dereplicate.output
-	output: os.path.join(PROJECT_DIR, "qc/03_interleave_seqtk/{sample}.fastq")
+	output: os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq")
 	params:
 		prefix = "{sample}"
 	shell: """
-		mkdir -p {PROJECT_DIR}/qc/03_interleave_seqtk/
-		# module load seqtk/1.2-r102
-		seqtk mergepe {input} > {sample}.fastq
+		# Eli's Python script and command line options
 	"""
