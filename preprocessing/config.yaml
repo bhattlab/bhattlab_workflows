@@ -1,17 +1,12 @@
 # specify directories
-raw_reads_directory: /srv/gsfs0/projects/bhatt/ribado/tools/qc_snakemake/test_sequences
-output_directory: /srv/gsfs0/projects/bhatt/ribado/tools/qc_snakemake/test_output
-trimgalore_directory: /srv/gsfs0/projects/bhatt/tools/moss_tools/qc/Super-Deduper
+raw_reads_directory: /path/to/data
+output_directory: /path/to/output
+
 # specify parameters for TrimGalore
 trim_galore:
   adaptors: illumina
   quality:  30
-# specify parameters for SuperDeduper
-dereplicate:
   start_trim: 15
-  unique_length: 90
-# specify parameters for FLASh
-interleave:
-  min_length: 25
-  max_length: 70
-  mismatch: 0.1
+  end_trim: 0
+  min_read_length: 60
+
