@@ -26,13 +26,13 @@ SAMPLE_PREFIX = list(set([re.split('_1|_2', i)[0] for i in FILES]))
 
 ################################################################################
 # specify which rules do not need to be submitted to the cluster
-localrules:  interleave
+localrules:  assembly_meta_file
 
 rule all:
 	input:
-		expand(os.path.join(PROJECT_DIR, "/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"), 
+		expand(os.path.join(PROJECT_DIR, "/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"),
 		      , sample=SAMPLE_PREFIX),
-		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"), 
+		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"),
 		      , sample=SAMPLE_PREFIX)
 		expand(os.path.join(PROJECT_DIR, "qc/03_interleave/{sample}.fastq"), sample=SAMPLE_PREFIX)
 
@@ -47,7 +47,7 @@ rule pre_fastqc:
 	   # module load fastqc/0.11.2
 	   fastqc {input} --outdir {PROJECT_DIR}/qc/00_qc_reports/pre_fastqc/
 	"""
-		
+
 ################################################################################
 rule post_fastqc:
 	input:  rules.dereplicate.output
@@ -58,8 +58,8 @@ rule post_fastqc:
 	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
 	   # module load fastqc/0.11.2
 	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	 """		
-		
+	 """
+
 ################################################################################
 rule trim_galore:
 	input:
@@ -102,17 +102,27 @@ rule dereplicate:
 
 ################################################################################
 rule sync:
-	input:  
+	input:
 		rules.trim_galore.output[0],
 		rules.dereplicate.output
-	output: 
+	output:
 		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_1.fastq"),
 		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_2.fastq"),
 		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_orphans.fastq")
-	params:
-		prefix = "{sample}"
 	shell:
 		"scripts/sync.sh {input} {output}"
+
+
+################################################################################
+rule assembly_meta_file:
+	input:  rules.sync.output[0]
+	output: os.path.join(PROJECT_DIR, "qc/assembly_input.txt")
+	shell: """
+		prefix=$(echo {input} | cut -d'_' -f1)
+		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )
+ 		echo "$prefix	$files" >> {output}
+	"""
+
 
 ################################################################################
 rule remove_host_reads:
@@ -123,5 +133,5 @@ rule remove_host_reads:
 	shell: """
 	# reference alignment to specified host
 	# Wh
-		
-	"""	
+
+	"""
