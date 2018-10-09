@@ -8,3 +8,4 @@ dependencies:
   - fastqc=0.11.7
   - seqkit
   - bwa
+  - samtools
