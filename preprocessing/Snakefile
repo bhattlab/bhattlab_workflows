@@ -126,12 +126,14 @@ rule assembly_meta_file:
 
 ################################################################################
 rule remove_host_reads:
-	input: rules.interleave.output
-	output:
-	params:
-		host_genome = config['rm_host_reads']['host_genome']
-	shell: """
-	# reference alignment to specified host
-	# Wh
+	input:
+		reads = rules.sync.output[0], rules.sync.output[1]
+        index = config['rm_host_reads']['host_genome']
+	output: os.path.join(PROJECT_DIR, "/qc/04_rm_host/{sample}_alignedbwa.sam.bam")
 
+	threads: 2
+	shell: """
+		mkdir -p {PROJECT_DIR}/qc/04_rm_host/
+		bwa mem -M -t {threads} {input.index} {input.reads} | samtools view -h -F4 | samtools sort > {output}
+		samtools index {output}
 	"""
