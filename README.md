@@ -18,7 +18,7 @@ snakemake --configfile /path/to/config.yaml -s /path/to/classification/Snakefile
 
 QC and data processing pipeline for raw short read sequencing data.
 
-0) demultiplex check - Eli
+0) demultiplex check - Eli - decided not to do this after all
 
 1) qc - fastqc
 
