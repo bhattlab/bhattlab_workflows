@@ -11,4 +11,5 @@ trim_galore:
   min_read_length: 60
 
 rm_host_reads:
-  host_genome: /path/to/genome/fastq
+  host_pre: bowtie_index_prefix (i.e. hg19 or mm10)
+  host_genome: /path/to/genome/fastq/prefix
