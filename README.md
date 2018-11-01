@@ -34,9 +34,9 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 - PROJECT_DIR/qc/04_host_align
 '''
 
-**The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_{reference_name}_unmapped_1.fq and {sample}_{reference_name}_unmapped_2.fq**
+The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_{reference_name}_unmapped_1.fq and {sample}_{reference_name}_unmapped_2.fq
 
-## Reference genomes for removal of host reads
+### Reference genomes for removal of host reads
 For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. Yo can specify the host reference genomes in the config using the following directories. 
 **Humans:** 
 ``` /labs/asbhatt/data/host_reference_genomes/hg19 ```
