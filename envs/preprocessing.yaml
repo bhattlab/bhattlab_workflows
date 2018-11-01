@@ -6,6 +6,7 @@ dependencies:
   - python=3.5.3
   - snakemake=4.8.0
   - fastqc=0.11.7
+  - trim-galore 
   - seqkit
-  - bwa
+  - bowtie2=2.3.4.3
   - samtools
