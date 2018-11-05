@@ -2,13 +2,13 @@
 raw_reads_directory: /path/to/data
 output_directory: /path/to/output
 
-# specify parameters for TrimGalore
+# specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
-  adaptors: illumina
   quality:  30
   start_trim: 15
   end_trim: 0
   min_read_length: 60
 
 rm_host_reads:
-  host_genome: /path/to/genome/fastq
+  host_pre: bowtie_index_prefix (i.e. hg19 or mm10)
+  host_genome: /path/to/genome/fastq/prefix

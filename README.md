@@ -16,23 +16,50 @@ snakemake --configfile /path/to/config.yaml -s /path/to/classification/Snakefile
 
 # Preprocessing 
 
-QC and data processing pipeline for raw short read sequencing data.
+To use this pipeline, edit parameters in the config.yaml, and specify the proper path to config file in the submission script.
 
-0) demultiplex check - Eli
+**The only parameters that need changing in the config file**
+1. directory path containing demultiplexed raw fastq files (DATA_DIR)
+2. root directory path for output files (PROJECT_DIR)
+3. directory path for the host reference genome 
 
-1) qc - fastqc
+*This program runs under the assumption samples are named PREFIX_R1.fastq.gz and PREFIX_R2.fastq.gz.*
 
-2) trim - trim galore: all adapters, min read 60
+**This script will create the following folders:**
+- PROJECT_DIR/qc/00_qc_reports/pre_fastqc
+- PROJECT_DIR/qc/00_qc_reports/post_fastqc
+- PROJECT_DIR/qc/01_trimmed
+- PROJECT_DIR/qc/02_dereplicate
+- PROJECT_DIR/qc/03_interleave
+- PROJECT_DIR/qc/04_host_align
 
-3) deduplication - seakit: fwd and rev separately
+The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_{reference_name}_unmapped_1.fq and {sample}_{reference_name}_unmapped_2.fq
 
-4) sync - eli's script
+### Reference genomes for removal of host reads
+For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories. 
+- **Humans:** 
+``` /labs/asbhatt/data/host_reference_genomes/hg19 ```
+- **Mice:** 
+``` /labs/asbhatt/data/host_reference_genomes/mm10 ```
 
-5) post qc
+If working on a different cluster or different model organism, these are the steps necessary to build the host reference for alignment. I am showing the steps used to build Bhatt lab hosts from above. 
 
-6) multiqc
-
-7) separate reference reads and give ref alignment stats
+Download reference genomes
+```
+mkdir -p /labs/asbhatt/data/host_reference_genomes/ # change to preferred directory path
+cd /labs/asbhatt/data/host_reference_genomes/ 
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit; 
+```
+Convert to fasta format
+```
+wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa;
+chmod +x twoBitToFa; 
+./twoBitToFa hg19.2bit hg19.fa; 
+```
+Create bowtie index
+```
+bowtie2-build hg19.fa hg19
+```
 
 
 # Classification and taxonomic barplots
