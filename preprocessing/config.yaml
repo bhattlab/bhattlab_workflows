@@ -2,9 +2,8 @@
 raw_reads_directory: /path/to/data
 output_directory: /path/to/output
 
-# specify parameters for TrimGalore
+# specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
-  adaptors: illumina
   quality:  30
   start_trim: 15
   end_trim: 0
