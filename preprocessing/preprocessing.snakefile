@@ -82,8 +82,7 @@ rule trim_galore:
         	mem = 24
 	shell: """
 		 mkdir -p {PROJECT_DIR}/qc/01_trimmed/
-		 trim_galore --{params.adaptor} \
-			     --quality {params.q_min} \
+		 trim_galore --quality {params.q_min} \
 			     --clip_R1 {params.left} --clip_R2 {params.left} \
 			     --length {params.min_len} \
 			     --output_dir {PROJECT_DIR}/qc/01_trimmed/ \
@@ -104,8 +103,7 @@ rule dereplicate:
         	mem = 16
 	shell: """
 		mkdir -p {PROJECT_DIR}/qc/02_dereplicate/
-		seqtk rmdup {input.fwd} > {output.fwd}
-		seqtk rmdup {input.rev} > {output.rev}
+		seqkit rmdup {input.fwd} > {output.fwd}; seqkit rmdup {input.rev} > {output.rev}
 	"""
 
 
