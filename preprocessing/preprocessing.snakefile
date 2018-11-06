@@ -74,8 +74,8 @@ rule trim_galore:
 	threads: 4
 	params:
 		adaptor = config['trim_galore']['adaptors'],
-		q_min   = config['trim_galore']['quality']
-		left    = config['trim_galore']['start_trim']
+		q_min   = config['trim_galore']['quality'],
+		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
 	resources:
         	time = 1,
