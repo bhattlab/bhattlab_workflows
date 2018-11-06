@@ -93,7 +93,7 @@ rule dereplicate:
         	mem = 16
 	shell: """
 		mkdir -p {PROJECT_DIR}/qc/02_dereplicate/
-		seqkit rmdup {input.fwd} > {output.fwd}; seqkit rmdup {input.rev} > {output.rev}
+		seqkit rmdup -s {input.fwd} > {output.fwd}; seqkit rmdup -s {input.rev} > {output.rev}
 	"""
 
 ################################################################################
