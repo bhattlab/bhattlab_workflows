@@ -12,7 +12,7 @@ PROJECT_DIR/qc/00_qc_reports/post_fastqc
 PROJECT_DIR/qc/01_trimmed
 PROJECT_DIR/qc/02_dereplicate
 PROJECT_DIR/qc/03_interleave
-PROJECT_DIR/qc/04_host_align/
+PROJECT_DIR/qc/04_host_align
 '''
 
 ################################################################################
@@ -23,7 +23,9 @@ PROJECT_DIR = config["output_directory"]
 ################################################################################
 # get the names of the files in the directory
 FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
-SAMPLE_PREFIX = list(set([re.split('_1|_2', i)[0] for i in FILES]))
+
+SAMPLE_PREFIX = list(set([re.split('_1|_2|_R1|_R2', i)[0] for i in FILES]))
+print(FILES)
 
 ################################################################################
 # specify which rules do not need to be submitted to the cluster
@@ -31,11 +33,13 @@ localrules: sync, assembly_meta_file
 
 rule all:
 	input:
-		expand(os.path.join(PROJECT_DIR, "/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"),
-		      sample=SAMPLE_PREFIX),
+		expand(os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"),
+		      sample=SAMPLE_PREFIX, read=['1', '2']),
 		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"),
-		      sample=SAMPLE_PREFIX),
-		expand(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_{read}.fq"), sample=SAMPLE_PREFIX, reference_name=config['rm_host_reads']['host_pre'], read = ['1', '2'])
+		      sample=SAMPLE_PREFIX, read=['1','2']),
+		expand(os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_1.fastq"), sample=SAMPLE_PREFIX),
+		#os.path.join(PROJECT_DIR, "qc/assembly_input.txt")
+		#expand(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_{read}.fq"), sample=SAMPLE_PREFIX, reference_name=config['rm_host_reads']['host_pre'], read = ['1', '2'])
 
 ################################################################################
 rule pre_fastqc:
@@ -51,19 +55,6 @@ rule pre_fastqc:
 	"""
 
 ################################################################################
-rule post_fastqc:
-	input:  rules.dereplicate.output
-	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html")
-	threads: 1
-	resources:
-        	time = 1,
-        	mem = 16
-	shell: """
-	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	 """
-
-################################################################################
 rule trim_galore:
 	input:
 		fwd = os.path.join(DATA_DIR, "{sample}_R1.fastq.gz"),
@@ -73,7 +64,6 @@ rule trim_galore:
 		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_2_val_2.fq.gz")
 	threads: 4
 	params:
-		adaptor = config['trim_galore']['adaptors'],
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
@@ -106,6 +96,18 @@ rule dereplicate:
 		seqkit rmdup {input.fwd} > {output.fwd}; seqkit rmdup {input.rev} > {output.rev}
 	"""
 
+################################################################################
+rule post_fastqc:
+	input:  rules.dereplicate.output
+	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html")
+	threads: 1
+	resources:
+        	time = 1,
+        	mem = 16
+	shell: """
+	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
+	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
+	 """
 
 ################################################################################
 rule sync:
@@ -136,13 +138,13 @@ rule align_host:
 	input:
 		fwd    = rules.sync.output[0],
 		rev    = rules.sync.output[1],
-		orphan = rev = rules.sync.output[2],
-        ref    = config['rm_host_reads']['host_genome']
-	output: os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}.bam")
+		orphan = rules.sync.output[2],
+		ref    = config['rm_host_reads']['host_genome']
+	output: os.path.join(PROJECT_DIR, "qc/04_host_align/{sample}_{reference_name}.bam")
 	threads: 8
 	resources:
 		time = 6,
-        	mem = 16
+		mem = 16
 	shell: """
 		mkdir -p {PROJECT_DIR}/qc/04_host_align/
 		bowtie2 -x {input.ref} -1 {input.fwd} -2 {input.rev} -U {input.orphan} \
