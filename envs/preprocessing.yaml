@@ -8,5 +8,5 @@ dependencies:
   - fastqc=0.11.7
   - trim-galore 
   - seqkit
-  - bowtie2=2.3.4.3
+  - bwa
   - samtools
