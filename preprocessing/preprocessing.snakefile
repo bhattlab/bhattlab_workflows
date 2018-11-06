@@ -32,9 +32,9 @@ localrules: sync, assembly_meta_file
 rule all:
 	input:
 		expand(os.path.join(PROJECT_DIR, "/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"),
-		      , sample=SAMPLE_PREFIX),
+		      sample=SAMPLE_PREFIX),
 		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"),
-		      , sample=SAMPLE_PREFIX),
+		      sample=SAMPLE_PREFIX),
 		expand(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_{read}.fq"), sample=SAMPLE_PREFIX, reference_name=config['rm_host_reads']['host_pre'], read = ['1', '2'])
 
 ################################################################################
