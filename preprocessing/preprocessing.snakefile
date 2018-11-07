@@ -60,8 +60,8 @@ rule trim_galore:
 		fwd = os.path.join(DATA_DIR, "{sample}_R1.fastq.gz"),
 		rev = os.path.join(DATA_DIR, "{sample}_R2.fastq.gz")
 	output:
-		fwd = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_val_1.fq.gz"),
-		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_val_2.fq.gz")
+		fwd = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_R1_val_1.fq.gz"),
+		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_R2_val_2.fq.gz")
 	threads: 4
 	params:
 		q_min   = config['trim_galore']['quality'],
