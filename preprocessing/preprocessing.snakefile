@@ -60,15 +60,15 @@ rule trim_galore:
 		fwd = os.path.join(DATA_DIR, "{sample}_R1.fastq.gz"),
 		rev = os.path.join(DATA_DIR, "{sample}_R2.fastq.gz")
 	output:
-		fwd = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_1_val_1.fq.gz"),
-		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_2_val_2.fq.gz")
+		fwd = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_val_1.fq.gz"),
+		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_val_2.fq.gz")
 	threads: 4
 	params:
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
 	resources:
-        	time = 1,
+        	time = 3,
         	mem = 24
 	shell: """
 		 mkdir -p {PROJECT_DIR}/qc/01_trimmed/
@@ -89,7 +89,7 @@ rule dereplicate:
 		rev = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE2.fastq")
 	threads: 2
 	resources:
-        	time = 1,
+        	time = 2,
         	mem = 16
 	shell: """
 		mkdir -p {PROJECT_DIR}/qc/02_dereplicate/
