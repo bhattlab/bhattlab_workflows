@@ -119,7 +119,7 @@ rule sync:
 		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_2.fastq"),
 		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_orphans.fastq")
 	shell:
-		"scripts/sync.sh {input} {output}"
+		"scripts/sync.py {input} {output}"
 
 
 ################################################################################
