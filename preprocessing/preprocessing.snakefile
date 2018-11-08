@@ -1,172 +1,152 @@
-import os,re
-
-'''
-Aim: A simple wrapper for metagenomics QC using paired end reads. To use this pipeline, edit parameters in the config.yaml, and specify the proper path to config file in the submission script.
-
-This program runs under the assumption samples are named:
-PREFIX_R1.fastq.gz and PREFIX_R2.fastq.gz.
-
-This script will create the following folders:
-PROJECT_DIR/qc/00_qc_reports/pre_fastqc
-PROJECT_DIR/qc/00_qc_reports/post_fastqc
-PROJECT_DIR/qc/01_trimmed
-PROJECT_DIR/qc/02_dereplicate
-PROJECT_DIR/qc/03_interleave
-PROJECT_DIR/qc/04_host_align
-'''
+import re,os
 
 ################################################################################
 # specify project directories
 DATA_DIR    = config["raw_reads_directory"]
 PROJECT_DIR = config["output_directory"]
+READ_SUFFIX = config["read_specification"]
+EXTENSION   = config["extension"]
 
-################################################################################
-# get the names of the files in the directory
+# get file names
 FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
-
-SAMPLE_PREFIX = list(set([re.split('_1|_2|_R1|_R2', i)[0] for i in FILES]))
-print(FILES)
+SAMPLE_PREFIX = list(set([re.split('_1.|_2.|_R1|_R2', i)[0] for i in FILES]))
 
 ################################################################################
-# specify which rules do not need to be submitted to the cluster
-localrules: sync, assembly_meta_file
+localrules: assembly_meta_file
 
 rule all:
 	input:
-		expand(os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html"),
-		      sample=SAMPLE_PREFIX, read=['1', '2']),
-		expand(os.path.join(PROJECT_DIR, "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html"),
-		      sample=SAMPLE_PREFIX, read=['1','2']),
-		expand(os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_1.fastq"), sample=SAMPLE_PREFIX),
-		#os.path.join(PROJECT_DIR, "qc/assembly_input.txt")
-		#expand(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_{read}.fq"), sample=SAMPLE_PREFIX, reference_name=config['rm_host_reads']['host_pre'], read = ['1', '2'])
+		expand(os.path.join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_orphan.fq"), sample=SAMPLE_PREFIX),
+		expand(os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		expand(os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		# os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
+
 
 ################################################################################
 rule pre_fastqc:
-	input:  os.path.join(DATA_DIR, "{sample}_R{read}.fastq.gz")
-	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_R{read}_fastqc.html")
+	input:  os.path.join(DATA_DIR, "{sample}_{read}") + EXTENSION
+	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
 	threads: 1
 	resources:
         	time = 1,
         	mem = 16
 	shell: """
-	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/pre_fastqc/
-	   fastqc {input} --outdir {PROJECT_DIR}/qc/00_qc_reports/pre_fastqc/
+	   mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
+	   fastqc {input} --outdir {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
 	"""
 
 ################################################################################
 rule trim_galore:
 	input:
-		fwd = os.path.join(DATA_DIR, "{sample}_R1.fastq.gz"),
-		rev = os.path.join(DATA_DIR, "{sample}_R2.fastq.gz")
+		fwd = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION,
+	 	rev = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
 	output:
-		fwd = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_R1_val_1.fq.gz"),
-		rev = os.path.join(PROJECT_DIR, "qc/01_trimmed/{sample}_R2_val_2.fq.gz")
+		fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_val_1.fq.gz",
+		rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[1] + "_val_2.fq.gz",
+		orp = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
 	threads: 4
+	resources:
+		mem=32,
+		time=3
 	params:
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
-	resources:
-        	time = 3,
-        	mem = 24
 	shell: """
-		 mkdir -p {PROJECT_DIR}/qc/01_trimmed/
-		 trim_galore --quality {params.q_min} \
-			     --clip_R1 {params.left} --clip_R2 {params.left} \
-			     --length {params.min_len} \
-			     --output_dir {PROJECT_DIR}/qc/01_trimmed/ \
-			     --paired {input.fwd} {input.rev}
+		mkdir -p {PROJECT_DIR}/01_processing/01_trimmed/
+		trim_galore --quality {params.q_min} \
+			--clip_R1 {params.left} --clip_R2 {params.left} \
+			--length {params.min_len} \
+			--output_dir {PROJECT_DIR}/01_processing/01_trimmed/ \
+			--paired {input.fwd} {input.rev} \
+			--retain_unpaired
+		# merge unpaired reads - delete intermediate files
+		zcat {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_1_unpaired_1.fq.gz {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_2_unpaired_2.fq.gz | gzip >> {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_unpaired.fq.gz
+		rm {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_1_unpaired_1.fq.gz {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_2_unpaired_2.fq.gz
 	"""
 
 ################################################################################
 rule dereplicate:
 	input:
-	 	fwd = rules.trim_galore.output.fwd,
-		rev = rules.trim_galore.output.rev
+		fwd = rules.trim_galore.output.fwd,
+		rev = rules.trim_galore.output.rev,
+		orp = rules.trim_galore.output.orp
 	output:
-	 	fwd = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE1.fastq"),
-		rev = os.path.join(PROJECT_DIR, "qc/02_dereplicate/{sample}_nodup_PE2.fastq")
-	threads: 2
+		fwd = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
+		rev = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
+		orp = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
+	threads: 4
 	resources:
-        	time = 2,
-        	mem = 16
+		mem=32,
+		time=24
 	shell: """
-		mkdir -p {PROJECT_DIR}/qc/02_dereplicate/
-		seqkit rmdup -s {input.fwd} > {output.fwd}; seqkit rmdup -s {input.rev} > {output.rev}
+		mkdir -p {PROJECT_DIR}/01_processing/02_dereplicate/
+		seqkit rmdup --by-seq {input.fwd} > {output.fwd} \
+			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_1_details.txt
+		seqkit rmdup --by-seq {input.rev} > {output.rev} \
+			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_2_details.txt
+		seqkit rmdup --by-seq {input.orp} > {output.orp} \
+			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_unpaired_details.txt
+	"""
+
+################################################################################
+rule sync:
+	input:
+		rep_fwd   = rules.trim_galore.output.fwd,
+		derep_fwd = rules.dereplicate.output.fwd,
+		derep_rev = rules.dereplicate.output.rev
+	output:
+		fwd = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fastq"),
+		rev = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fastq"),
+		orp = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fastq")
+	shell: """
+		mkdir -p {PROJECT_DIR}/01_processing/03_sync/
+		/labs/asbhatt/ribado/tools/bhattlab_workflows/preprocessing/scripts/sync.py {input.rep_fwd} {input.derep_fwd} {input.derep_rev} {output.fwd} {output.rev} {output.orp}
 	"""
 
 ################################################################################
 rule post_fastqc:
-	input:  rules.dereplicate.output
-	output: os.path.join(PROJECT_DIR,  "qc/00_qc_reports/post_fastqc/{sample}_nodup_PE{read}_fastqc.html")
+	input:  rules.sync.output
+	output: os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html")
 	threads: 1
 	resources:
         	time = 1,
         	mem = 16
 	shell: """
-	   mkdir -p {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
-	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/qc/00_qc_reports/post_fastqc/
+	   mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
+	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
 	 """
 
 ################################################################################
-rule sync:
+rule rm_host_reads:
 	input:
-		rules.trim_galore.output[0],
-		rules.dereplicate.output
+	 	bwa_index = config['rm_host_reads']['host_genome'],
+		fwd       = rules.sync.output.fwd,
+		rev       = rules.sync.output.rev,
+		orp       = rules.sync.output.orp
 	output:
-		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_1.fastq"),
-		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_2.fastq"),
-		os.path.join(PROJECT_DIR, "qc/03_sync/{sample}_orphans.fastq")
-	shell:
-		"scripts/sync.py {input} {output}"
-
+		unmapped_1 = os.path.join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_1.fq"),
+		unmapped_2 = os.path.join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_2.fq"),
+		unmapped_orp = os.path.join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_orphan.fq")
+	threads: 4
+	resources:
+		mem=16,
+		time=24
+	shell: """
+		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
+		# if an index needs to be built, use bwa index ref.fa
+		# run first on the paired reads
+		bwa mem -t {threads} {input.bwa_index} {input.fwd} {input.rev} | samtools view -bS - | samtools bam2fq -f 4 -1 {output.unmapped_1} -2 {output.unmapped_2} - ;
+		# run on the orphan reads
+		bwa mem -t {threads} {input.bwa_index} {input.orp} | samtools view -bS - | samtools bam2fq -f 4 - > {output.unmapped_orp}
+	"""
 
 ################################################################################
 rule assembly_meta_file:
-	input:  rules.sync.output[0]
-	output: os.path.join(PROJECT_DIR, "qc/assembly_input.txt")
+	input:  rules.rm_host_reads.output.unmapped_1
+	output: os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
 	shell: """
 		prefix=$(echo {input} | cut -d'_' -f1)
 		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )
  		echo "$prefix	$files" >> {output}
 	"""
-
-
-################################################################################
-rule align_host:
-	input:
-		fwd    = rules.sync.output[0],
-		rev    = rules.sync.output[1],
-		orphan = rules.sync.output[2],
-		ref    = config['rm_host_reads']['host_genome']
-	output: os.path.join(PROJECT_DIR, "qc/04_host_align/{sample}_{reference_name}.bam")
-	threads: 8
-	resources:
-		time = 6,
-		mem = 16
-	shell: """
-		mkdir -p {PROJECT_DIR}/qc/04_host_align/
-		bowtie2 -x {input.ref} -1 {input.fwd} -2 {input.rev} -U {input.orphan} \
-			--threads {threads} | samtools view -@ {threads} -bS - > {output}
-	"""
-
-################################################################################
-rule rm_unmapped:
-    input: rules.align_host.output
-    output:
-        unmapped_1 = os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_1.fq"),
-        unmapped_2 = os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_2.fq"),
-        unmapped_orphans1 = temp(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_orphans1.fq")),
-        unmapped_orphans2 = temp(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_orphans2.fq")),
-	unmapped_orphans = temp(os.path.join(PROJECT_DIR, "/qc/04_host_align/{sample}_{reference_name}_unmapped_orphans.fq"))
-    threads: 4
-    resources:
-        time = 1,
-        mem = 8
-    shell: """
-        samtools bam2fq -@ {threads} -f 4 -F 256 \
-			-1 {output.unmapped_1} -2 {output.unmapped_2} \
-			-s {output.unmapped_orphans} -0 {output.unmapped_orphans2} -n {input}
-        cat {output.unmapped_orphans1} {output.unmapped_orphans2} > {output.unmapped_orphans}
-    """
