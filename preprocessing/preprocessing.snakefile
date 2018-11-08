@@ -142,11 +142,11 @@ rule rm_host_reads:
 	"""
 
 ################################################################################
-rule assembly_meta_file:
-	input:  rules.rm_host_reads.output.unmapped_1
-	output: os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
-	shell: """
-		prefix=$(echo {input} | cut -d'_' -f1)
-		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )
- 		echo "$prefix	$files" >> {output}
-	"""
+#rule assembly_meta_file:
+#	input:  rules.rm_host_reads.output.unmapped_1
+#	output: os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
+#	shell: """
+#		prefix=$(echo {input} | cut -d'_' -f1)
+#		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )
+#		echo "$prefix	$files" >> {output}
+#	"""
