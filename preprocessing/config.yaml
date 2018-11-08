@@ -1,6 +1,8 @@
 # specify directories
 raw_reads_directory: /path/to/data
 output_directory: /path/to/output
+read_specification: ['1', '2'] # or ['R1', 'R2']
+extension: .fq.gz # or .fastq.gz (should be gzipped regardless) - must include the period!
 
 # specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
@@ -10,5 +12,4 @@ trim_galore:
   min_read_length: 60
 
 rm_host_reads:
-  host_pre: bowtie_index_prefix (i.e. hg19 or mm10)
-  host_genome: /path/to/genome/fastq/prefix
+  host_genome: /path/to/bwa/index/ref.fa
