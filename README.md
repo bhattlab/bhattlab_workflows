@@ -21,9 +21,9 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 **The only parameters that need changing in the config file**
 1. directory path containing demultiplexed raw fastq files (DATA_DIR)
 2. root directory path for output files (PROJECT_DIR)
-3. directory path for the host reference genome 
+3. directory path for the host reference genome (BWA index)
 
-*This program runs under the assumption samples are named PREFIX_R1.fastq.gz and PREFIX_R2.fastq.gz.*
+*This program runs under the assumption samples are named <sample_id>_[R]1.fastq[fq].gz and <sample_id>_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config. 
 
 **This script will create the following folders:**
 - PROJECT_DIR/01_processing/00_qc_reports/pre_fastqc
@@ -33,7 +33,7 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 - PROJECT_DIR/01_processing/03_sync
 - PROJECT_DIR/01_processing/04_host_align
 
-The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_{reference_name}_unmapped_1.fq and {sample}_{reference_name}_unmapped_2.fq
+The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_rmHost_1.fq and {sample}_rmHost_2.fq 
 
 ### Reference genomes for removal of host reads
 For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories. 
@@ -42,7 +42,7 @@ For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mic
 - **Mice:** 
 ``` /labs/asbhatt/data/host_reference_genomes/mm10/mm10.fa ```
 
-If working on a different cluster or different model organism, these are the steps necessary to build the host reference for alignment. I am showing the steps used to build Bhatt lab hosts from above. 
+If working on a different cluster or different model organism, these are the steps necessary to build the host reference index for alignment. I am showing the steps used to build Bhatt lab hosts from above using BWA. 
 
 Download reference genomes
 ```
