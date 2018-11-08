@@ -26,21 +26,21 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 *This program runs under the assumption samples are named PREFIX_R1.fastq.gz and PREFIX_R2.fastq.gz.*
 
 **This script will create the following folders:**
-- PROJECT_DIR/qc/00_qc_reports/pre_fastqc
-- PROJECT_DIR/qc/00_qc_reports/post_fastqc
-- PROJECT_DIR/qc/01_trimmed
-- PROJECT_DIR/qc/02_dereplicate
-- PROJECT_DIR/qc/03_interleave
-- PROJECT_DIR/qc/04_host_align
+- PROJECT_DIR/01_processing/00_qc_reports/pre_fastqc
+- PROJECT_DIR/01_processing/00_qc_reports/post_fastqc
+- PROJECT_DIR/01_processing/01_trimmed
+- PROJECT_DIR/01_processing/02_dereplicate
+- PROJECT_DIR/01_processing/03_sync
+- PROJECT_DIR/01_processing/04_host_align
 
 The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_{reference_name}_unmapped_1.fq and {sample}_{reference_name}_unmapped_2.fq
 
 ### Reference genomes for removal of host reads
 For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories. 
 - **Humans:** 
-``` /labs/asbhatt/data/host_reference_genomes/hg19 ```
+``` /labs/asbhatt/data/host_reference_genomes/hg19/hg19.fa ```
 - **Mice:** 
-``` /labs/asbhatt/data/host_reference_genomes/mm10 ```
+``` /labs/asbhatt/data/host_reference_genomes/mm10/mm10.fa ```
 
 If working on a different cluster or different model organism, these are the steps necessary to build the host reference for alignment. I am showing the steps used to build Bhatt lab hosts from above. 
 
@@ -58,7 +58,7 @@ chmod +x twoBitToFa;
 ```
 Create bowtie index
 ```
-bowtie2-build hg19.fa hg19
+bwa index hg19.fa
 ```
 
 
