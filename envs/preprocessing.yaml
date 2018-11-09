@@ -3,10 +3,14 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
+  - cython=0.28.5
   - python=3.5.3
-  - snakemake=4.8.0
   - fastqc=0.11.7
   - trim-galore 
-  - seqkit
-  - bwa
+  - seqkit=0.9.1
+  - bwa=0.7.17
   - samtools
+  - pip
+    - snakemake==5.3.0
+    - cookiecutter==1.6.0
+    - datrie==0.7.1
