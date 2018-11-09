@@ -23,7 +23,7 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 2. root directory path for output files (PROJECT_DIR)
 3. directory path for the host reference genome (BWA index)
 
-*This program runs under the assumption samples are named <sample_id>_[R]1.fastq[fq].gz and <sample_id>_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config. 
+*This program runs under the assumption samples are named <sample_id>\_[R]1.fastq[fq].gz and <sample_id>\_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config. 
 
 **This script will create the following folders:**
 - PROJECT_DIR/01_processing/00_qc_reports/pre_fastqc
@@ -32,8 +32,10 @@ To use this pipeline, edit parameters in the config.yaml, and specify the proper
 - PROJECT_DIR/01_processing/02_dereplicate
 - PROJECT_DIR/01_processing/03_sync
 - PROJECT_DIR/01_processing/04_host_align
+- PROJECT_DIR/01_processing/05_sync
 
-The files that can then be used in downstream analyses will be in PROJECT_DIR/qc/04_04_host_align/ with the names {sample}_rmHost_1.fq and {sample}_rmHost_2.fq 
+
+The files that can then be used in downstream analyses will be in PROJECT_DIR/01_processing/05_sync/ as {sample}\_1.fq, {sample}\_2.fq, {sample}\_orphans.fq 
 
 ### Reference genomes for removal of host reads
 For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories. 
