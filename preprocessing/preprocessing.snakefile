@@ -42,6 +42,8 @@ rule trim_galore:
 	output:
 		fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_val_1.fq.gz",
 		rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[1] + "_val_2.fq.gz",
+		orp_fwd = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_1.fq.gz",
+		orp_rev = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_2.fq.gz",
 		orp = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
 	threads: 4
 	resources:
@@ -60,8 +62,8 @@ rule trim_galore:
 			--paired {input.fwd} {input.rev} \
 			--retain_unpaired
 		# merge unpaired reads - delete intermediate files
-		zcat {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_1_unpaired_1.fq.gz {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_2_unpaired_2.fq.gz | gzip >> {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_unpaired.fq.gz
-		rm {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_1_unpaired_1.fq.gz {PROJECT_DIR}/01_processing/01_trimmed/{wildcards.sample}_2_unpaired_2.fq.gz
+		zcat {output.orp_fwd} {output.orp_rev} | gzip >> {output.orp}
+		rm {output.orp_fwd} {output.orp_rev}
 	"""
 
 ################################################################################
