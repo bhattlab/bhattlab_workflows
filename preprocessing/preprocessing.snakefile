@@ -27,23 +27,23 @@ rule pre_fastqc:
 	output: os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
 	threads: 1
 	resources:
-        	time = 1,
-        	mem = 16
+			time = 1,
+			mem = 16
 	shell: """
-	   mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
-	   fastqc {input} --outdir {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
+		mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
+		fastqc {input} --outdir {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
 	"""
 
 ################################################################################
 rule trim_galore:
 	input:
 		fwd = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION,
-	 	rev = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
+		rev = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
 	output:
 		fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_val_1.fq.gz",
 		rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[1] + "_val_2.fq.gz",
-		orp_fwd = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_1.fq.gz",
-		orp_rev = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_2.fq.gz",
+		orp_fwd = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_1.fq.gz"),
+		orp_rev = temp(os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") +  READ_SUFFIX[0] + "_unpaired_2.fq.gz"),
 		orp = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
 	threads: 4
 	resources:
@@ -107,7 +107,7 @@ rule sync:
 ################################################################################
 rule rm_host_reads:
 	input:
-	 	bwa_index = config['rm_host_reads']['host_genome'],
+		bwa_index = config['rm_host_reads']['host_genome'],
 		fwd       = rules.sync.output.fwd,
 		rev       = rules.sync.output.rev,
 		orp       = rules.sync.output.orp
@@ -154,12 +154,12 @@ rule post_fastqc:
 	output: os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
 	threads: 1
 	resources:
-        	time = 1,
-        	mem = 16
+			time = 1,
+			mem = 16
 	shell: """
-	   mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
-	   fastqc {input} -f fastq --outdir {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
-	 """
+		mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
+		fastqc {input} -f fastq --outdir {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
+	"""
 
 ################################################################################
 #  will add a a separate bash file to be run afterwards -- too much of a pain to deal with special characters within snakemake
