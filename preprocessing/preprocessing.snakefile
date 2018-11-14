@@ -43,14 +43,13 @@ rule trim_galore:
 		fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz",
 		rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq.gz",
 		orp = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
-	tempfiles:
-		orp_fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
-		orp_rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
 	threads: 4
 	resources:
 		mem=32,
 		time=3
 	params:
+		orp_fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
+		orp_rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
@@ -63,8 +62,8 @@ rule trim_galore:
 			--paired {input.fwd} {input.rev} \
 			--retain_unpaired
 		# merge unpaired reads - delete intermediate files
-		zcat {tempfiles.orp_fwd} {tempfiles.orp_rev} | gzip >> {output.orp}
-		rm {tempfiles.orp_fwd} {tempfiles.orp_rev}
+		zcat {params.orp_fwd} {params.orp_rev} | gzip >> {output.orp}
+		rm {params.orp_fwd} {params.orp_rev}
 	"""
 
 ################################################################################
