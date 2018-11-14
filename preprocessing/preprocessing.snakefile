@@ -46,7 +46,7 @@ rule trim_galore:
 	threads: 4
 	resources:
 		mem=32,
-		time=3
+		time=lambda wildcards, attempt: attempt * 6
 	params:
 		orp_fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
 		orp_rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
