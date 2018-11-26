@@ -1,16 +1,33 @@
 ## First time setup
 
-First, install [miniconda3](https://conda.io/miniconda.html).  Then, if you haven't already, set up a Snakemake profile for SCG by following the instructions [here](https://github.com/bhattlab/slurm).  Then:
+First, install [miniconda3](https://conda.io/miniconda.html) on the cluster, as that's where you should be doing most of your workflow work.
 
 ```
-conda env create -f envs/workflow.yaml
+# ON SCG
+# to download installer
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+# to run installer
+bash https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+# follow instructions, select a place to install miniconda. We recommend installing in the lab directory, /labs/asbhatt/YOURNAME/miniconda3
+```
+Then, if you haven't already, set up a Snakemake profile for SCG by following the instructions [here](https://github.com/bhattlab/slurm). 
+Then clone this github repository to a place on scg. I keep a 'projects' folder in my home directory for cloning repos.
+```
+cd ~/projects
+git clone git@github.com:bhattlab/bhattlab_workflows.git
+cd ~/projects/bhattlab_workflows
+```
+Then create an environment for your workflow of choice. For example, to start with the preprocessing workflow:
+
+```
+conda env create -f envs/preprocessing.yaml
 ```
 
 ## Running the workflow
-
+Using the preprocessing workflow here as an example. You'll have to change options in the configuration file to match where your data lives on SCG, etc.
 ```
-source activate <workflow>
-snakemake --configfile /path/to/config.yaml -s /path/to/classification/Snakefile --profile scg
+source activate preprocessing
+snakemake --configfile ~/projects/bhattlab_workflows/preprocessing/config.yaml -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile --profile scg
 ```
 
 
