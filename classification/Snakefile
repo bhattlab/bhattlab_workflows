@@ -18,7 +18,8 @@ with open(config['datasets']) as asmf:
 
 		sample = s[0]
 		reads = s[3].split(',')
-
+		if sample in sample_reads:
+			raise ValueError("Non-unique sample encountered!")
 		sample_reads[sample] = reads
 
 rule kraken:
