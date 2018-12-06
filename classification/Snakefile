@@ -13,7 +13,7 @@ with open(config['datasets']) as asmf:
 	basedir = os.path.dirname(config['datasets'])
 	for l in asmf.readlines():
 		s = l.strip().split("\t")
-		if len(s) == 1 or s[0] == 'Sample':
+		if len(s) == 1 or s[0] == 'Sample' or s[0] == '#Sample':
 			continue
 
 		sample = s[0]
