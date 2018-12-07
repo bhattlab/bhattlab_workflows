@@ -1,7 +1,7 @@
 name: classification
 channels:
-  - bioconda
   - conda-forge
+  - bioconda
   - r
 dependencies:
   - python>3.5
