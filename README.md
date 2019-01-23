@@ -27,13 +27,13 @@ conda env create -f envs/preprocessing.yaml
 Using the preprocessing workflow here as an example. You'll have to change options in the configuration file to match where your data lives on SCG, etc.
 ```
 source activate preprocessing
-snakemake --configfile ~/projects/bhattlab_workflows/preprocessing/config.yaml -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile --profile scg
+snakemake --configfile config_preprocessing.yaml --snakefile preprocessing.snakefile --profile scg --jobs 10
 ```
 
 
 # Preprocessing 
 
-To use this pipeline, edit parameters in the config.yaml, and specify the proper path to config file in the submission script.
+To use this pipeline, edit parameters in the config_preprocessing.yaml, and specify the proper path to config file in the submission script.
 
 **The only parameters that need changing in the config file**
 1. directory path containing demultiplexed raw fastq files (DATA_DIR)
@@ -80,17 +80,15 @@ Create bowtie index
 bwa index hg19.fa
 ```
 
+# Assembly
+
+Assemble preprocessed read data, using Megahit, Spades or both. Evaluates result with Quast. Accepts a tab-delimited input table, specified in the config.yaml (see example below). Comment lines are specified with the # character. An input table is automatically generated at the end of the preprocessing pipeline and can be found at `01_processing/assembly_input.txt`. 
+
+```
+#Sample Reads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]
+sample_a    a_1.fq,a_2.fq,a_orphans.fq
+sample_b    b_1.fq,b_2.fq,b_orphans.fq
+```
 
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
-
-# Assembly
-
-Assemble preprocessed read data. Launches either Spades or Megahit. Evaluates result with Quast. Accepts an input table, specified in the config.yaml (see example), that looks like this:
-
-```
-Sample	Reads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]
-foo	a_1.fq,a_2.fq
-bar	b_1.fq,b_2.fq
-```
-
