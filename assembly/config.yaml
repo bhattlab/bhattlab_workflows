@@ -1,2 +1,3 @@
-assembler: "spades" #or 'megahit'
+assemblers: ["spades", 'megahit']
+output_directory: /path/to/output
 sample_table: "bhattlab_workflows/assembly/example/samples.tsv"

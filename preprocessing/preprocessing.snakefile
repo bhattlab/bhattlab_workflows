@@ -1,4 +1,5 @@
 import re,os
+from os.path import join
 
 ################################################################################
 # specify project directories
@@ -15,16 +16,16 @@ SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2', i)[0] for i in FILES]))
 localrules: assembly_meta_file
 rule all:
 	input:
-		expand(os.path.join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
-		expand(os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans'])
-		# os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
+		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
+		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans'])
+		# join(PROJECT_DIR, "01_processing/assembly_input.txt")
 
 
 ################################################################################
 rule pre_fastqc:
-	input:  os.path.join(DATA_DIR, "{sample}_{read}") + EXTENSION
-	output: os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
+	input:  join(DATA_DIR, "{sample}_{read}") + EXTENSION
+	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
 	threads: 1
 	resources:
 			time = 1,
@@ -37,19 +38,19 @@ rule pre_fastqc:
 ################################################################################
 rule trim_galore:
 	input:
-		fwd = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION,
-		rev = os.path.join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
+		fwd = join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION,
+		rev = join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
 	output:
-		fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz",
-		rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq.gz",
-		orp = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
+		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz",
+		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq.gz",
+		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
 	threads: 4
 	resources:
 		mem=32,
 		time=lambda wildcards, attempt: attempt * 6
 	params:
-		orp_fwd = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
-		orp_rev = os.path.join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
+		orp_fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
+		orp_rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
@@ -62,7 +63,7 @@ rule trim_galore:
 			--paired {input.fwd} {input.rev} \
 			--retain_unpaired
 		# merge unpaired reads - delete intermediate files
-		zcat {params.orp_fwd} {params.orp_rev} | gzip >> {output.orp}
+		zcat -f {params.orp_fwd} {params.orp_rev} | gzip >> {output.orp}
 		rm {params.orp_fwd} {params.orp_rev}
 	"""
 
@@ -73,9 +74,9 @@ rule dereplicate:
 		rev = rules.trim_galore.output.rev,
 		orp = rules.trim_galore.output.orp
 	output:
-		fwd = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
-		rev = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
-		orp = os.path.join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
+		fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
+		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
+		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
 	threads: 2
 	resources:
 		mem=32,
@@ -96,9 +97,9 @@ rule sync:
 		fwd = rules.dereplicate.output.fwd,
 		rev = rules.dereplicate.output.rev
 	output:
-		fwd = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
-		rev = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
-		orp = os.path.join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
+		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
+		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
+		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/03_sync/
 		/labs/asbhatt/ribado/tools/bhattlab_workflows/preprocessing/scripts/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
@@ -112,9 +113,9 @@ rule rm_host_reads:
 		rev       = rules.sync.output.rev,
 		orp       = rules.sync.output.orp
 	output:
-		unmapped_1 = os.path.join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_1.fq"),
-		unmapped_2 = os.path.join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_2.fq"),
-		unmapped_orp = os.path.join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
+		unmapped_1 = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_1.fq"),
+		unmapped_2 = join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_2.fq"),
+		unmapped_orp = join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
 	threads: 4
 	resources:
 		mem=16,
@@ -137,9 +138,9 @@ rule rm_host_sync:
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp
 	output:
-		fwd = os.path.join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
-		rev = os.path.join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
-		orp = os.path.join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
+		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
+		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
+		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/05_sync/
 		/labs/asbhatt/ribado/tools/bhattlab_workflows/preprocessing/scripts/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
@@ -150,8 +151,8 @@ rule rm_host_sync:
 
 ################################################################################
 rule post_fastqc:
-	input:  os.path.join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
-	output: os.path.join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
+	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
+	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
 	threads: 1
 	resources:
 			time = 1,
@@ -165,7 +166,7 @@ rule post_fastqc:
 #  will add a a separate bash file to be run afterwards -- too much of a pain to deal with special characters within snakemake
 # rule assembly_meta_file:
 # 	input:  rules.rm_host_reads.output.unmapped_1
-# 	output: os.path.join(PROJECT_DIR, "01_processing/assembly_input.txt")
+# 	output: join(PROJECT_DIR, "01_processing/assembly_input.txt")
 # 	shell: """
 # 		prefix=$(echo {input} | cut -d'_' -f1)
 # 		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )

@@ -82,16 +82,7 @@ bwa index hg19.fa
 
 
 # Classification and taxonomic barplots
-
-Given one or more input datasets, this workflow performs taxonomic classification with kraken, then visualizes 
-the resulting compositions in a barplot.  Accepts an input table, specified in the config.yaml (see example), that looks like this:
-
-```
-Sample	Timepoint	Condition	Reads1.fq[.gz][,Reads2.fq[.gz]]
-foo	a	control	a_1.fq,a_2.fq
-bar	b	case	b_1.fq,b_2.fq
-```
-
+Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 
 # Assembly
 
