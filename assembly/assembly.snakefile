@@ -8,11 +8,14 @@ PROJECT_DIR = config["output_directory"]
 with open(config["sample_table"]) as inf:
     insamps = inf.readlines()
     sample_dict = {sample: files.split(",") for sample, files in [l.strip().split("\t") for l in insamps]}
+# ensure no comment lines
+sample_dict = {k:sample_dict[k] for k in sample_dict.keys() if k[0] != '#'}
+
 # get list of samples
 sample_list = list(sample_dict.keys())
 
 # can do more than one assembler here
-assemblers = config['assembler'] 
+assemblers = config['assemblers'] 
 # ensure at least one valid option
 if not ('megahit' in assemblers or 'spades' in assemblers):
     sys.exit('Must have at least one valid assembler in config!')

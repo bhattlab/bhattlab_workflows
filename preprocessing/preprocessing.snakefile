@@ -18,8 +18,8 @@ rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
 		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans'])
-		# join(PROJECT_DIR, "01_processing/assembly_input.txt")
+		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		join(PROJECT_DIR, "01_processing/assembly_input.txt")
 
 
 ################################################################################
@@ -163,12 +163,19 @@ rule post_fastqc:
 	"""
 
 ################################################################################
-#  will add a a separate bash file to be run afterwards -- too much of a pain to deal with special characters within snakemake
-# rule assembly_meta_file:
-# 	input:  rules.rm_host_reads.output.unmapped_1
-# 	output: join(PROJECT_DIR, "01_processing/assembly_input.txt")
-# 	shell: """
-# 		prefix=$(echo {input} | cut -d'_' -f1)
-# 		files=$(find $(echo {input} | cut -d'_' -f1)* -maxdepth 0 -type f | tr '\n' ',' | sed 's/\(.*\),/\1 /' )
-#  		echo "$prefix	$files" >> {output}
-# 	"""
+rule assembly_meta_file:
+	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+	output: join(PROJECT_DIR, "01_processing/assembly_input.txt")
+	run:
+		outfile = str(output)
+		print(outfile)
+		if (os.path.exists(outfile)): 
+			os.remove(outfile)
+		with open(outfile, 'w') as outf:
+			outf.writelines(['# Sample\tReads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]\n'])
+			for sample in SAMPLE_PREFIX:
+				outline = [sample, ','.join([
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq")])]
+				outf.writelines('\t'.join(outline) + '\n')

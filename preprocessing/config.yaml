@@ -1,8 +1,8 @@
 # specify directories
-raw_reads_directory: /path/to/data
-output_directory: /path/to/output
-read_specification: ['1', '2'] # or ['R1', 'R2']
-extension: .fq.gz # or .fastq.gz (should be gzipped regardless) - must include the period!
+raw_reads_directory: raw_data
+output_directory: preprocessing
+read_specification: ['R1', 'R2'] #['1', '2'] # or ['R1', 'R2']
+extension: .fastq.gz # or .fastq.gz (should be gzipped regardless) - must include the period!
 
 # specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
@@ -13,3 +13,5 @@ trim_galore:
 
 rm_host_reads:
   host_genome: /path/to/bwa/index/ref.fa
+  # Mice: /labs/asbhatt/data/host_reference_genomes/mm10/mm10.fa
+  # Humans: /labs/asbhatt/data/host_reference_genomes/hg19/hg19.fa
