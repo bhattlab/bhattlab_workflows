@@ -1,4 +1,4 @@
-import re,os
+import re,os,subprocess
 from os.path import join
 
 ################################################################################
@@ -19,8 +19,9 @@ rule all:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
 		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
 		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		join(PROJECT_DIR, "01_processing/assembly_input.txt")
-
+		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
+		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
+		join(PROJECT_DIR, "01_processing/readcounts.pdf")
 
 ################################################################################
 rule pre_fastqc:
@@ -179,3 +180,60 @@ rule assembly_meta_file:
 				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq"),
 				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq")])]
 				outf.writelines('\t'.join(outline) + '\n')
+
+################################################################################
+def file_len(fname):
+    p = subprocess.Popen('zcat -f ' + fname + ' | wc -l', stdout=subprocess.PIPE, 
+                                              stderr=subprocess.PIPE, shell=True)
+    result, err = p.communicate()
+    if p.returncode != 0:
+        raise IOError(err)
+    return int(result.strip().split()[0])
+
+rule readcounts: 
+	input: 
+		raw = expand(join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION, sample=SAMPLE_PREFIX),
+		trimmed = expand(join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz", sample=SAMPLE_PREFIX),
+		dedup = expand(join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
+		rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"), sample=SAMPLE_PREFIX),
+		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+	output:
+		join(PROJECT_DIR, "01_processing/readcounts.tsv")
+	run:
+		outfile = str(output)
+		if (os.path.exists(outfile)): 
+			os.remove(outfile)
+		with open(outfile, 'w') as outf:
+			outf.writelines('Sample\traw_reads\ttrimmed_reads\ttrimmed_frac\tdeduplicated_reads\tdeduplicated_frac\thost_removed_reads\thost_removed_frac\torphan_reads\torphan_frac\n')
+			for sample in SAMPLE_PREFIX:
+				raw_file = join(DATA_DIR, sample + "_") + READ_SUFFIX[0] + EXTENSION
+				trimmed_file = join(PROJECT_DIR, "01_processing/01_trimmed/" + sample + "_") + READ_SUFFIX[0] + "_val_1.fq.gz"
+				dedup_file = join(PROJECT_DIR, "01_processing/03_sync/" + sample + "_1.fq") 
+				rmhost_file = join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq") 
+				orphans_file = join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq") 
+
+				raw_reads = int(file_len(raw_file) / 4)
+				trimmed_reads = int(file_len(trimmed_file) / 4)
+				dedup_reads = int(file_len(dedup_file) / 4)
+				rmhost_reads = int(file_len(rmhost_file) / 4)
+				orphans_reads = int(file_len(orphans_file) / 4)
+
+				trimmed_frac = round(trimmed_reads / float(raw_reads), 3)
+				dedup_frac = round(dedup_reads / float(raw_reads), 3)
+				rmhost_frac = round(rmhost_reads / float(raw_reads), 3)
+				orphans_frac = round(orphans_reads / float(raw_reads), 3)
+
+				line = '\t'.join([sample, str(raw_reads), 
+					str(trimmed_reads), str(trimmed_frac),
+					str(dedup_reads), str(dedup_frac),
+					str(rmhost_reads), str(rmhost_frac),
+					str(orphans_reads), str(orphans_frac)])
+				outf.writelines(line+ '\n')
+
+rule readcounts_graph:
+	input:
+		rules.readcounts.output
+	output:
+		join(PROJECT_DIR, "01_processing/readcounts.pdf")
+	script:
+		"scripts/plot_readcounts.R"
