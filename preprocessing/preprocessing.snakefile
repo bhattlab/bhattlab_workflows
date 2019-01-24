@@ -13,12 +13,14 @@ FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz
 SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2', i)[0] for i in FILES]))
 
 ################################################################################
-localrules: assembly_meta_file
+localrules: assembly_meta_file, pre_multiqc, post_multiqc
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
 		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
 		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
@@ -27,13 +29,26 @@ rule all:
 rule pre_fastqc:
 	input:  join(DATA_DIR, "{sample}_{read}") + EXTENSION
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
+	params:
+		outdir = join(PROJECT_DIR, "/01_processing/00_qc_reports/pre_fastqc/")
 	threads: 1
 	resources:
 			time = 1,
 			mem = 16
 	shell: """
-		mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
-		fastqc {input} --outdir {PROJECT_DIR}/01_processing/00_qc_reports/pre_fastqc/
+		mkdir -p {params.outdir}
+		fastqc {input} --outdir {params.outdir}
+	"""
+
+rule pre_multiqc:
+	input: 
+		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX)
+	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html")
+	params:
+		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc"),
+		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/")
+	shell: """
+		multiqc {params.indir} -o {params.outdir}
 	"""
 
 ################################################################################
@@ -154,13 +169,25 @@ rule rm_host_sync:
 rule post_fastqc:
 	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
+	params:
+		outdir = join(PROJECT_DIR, "/01_processing/00_qc_reports/post_fastqc/")
 	threads: 1
 	resources:
 			time = 1,
 			mem = 16
 	shell: """
-		mkdir -p {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
-		fastqc {input} -f fastq --outdir {PROJECT_DIR}/01_processing/00_qc_reports/post_fastqc/
+		mkdir -p {params.outdir}
+		fastqc {input} -f fastq --outdir {params.outdir}
+	"""
+
+rule post_multiqc:
+	input: expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/multiqc_report.html")
+	params:
+		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc"),
+		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/")
+	shell: """
+		multiqc {params.indir} -o {params.outdir}
 	"""
 
 ################################################################################
@@ -183,12 +210,12 @@ rule assembly_meta_file:
 
 ################################################################################
 def file_len(fname):
-    p = subprocess.Popen('zcat -f ' + fname + ' | wc -l', stdout=subprocess.PIPE, 
-                                              stderr=subprocess.PIPE, shell=True)
-    result, err = p.communicate()
-    if p.returncode != 0:
-        raise IOError(err)
-    return int(result.strip().split()[0])
+	p = subprocess.Popen('zcat -f ' + fname + ' | wc -l', stdout=subprocess.PIPE, 
+											  stderr=subprocess.PIPE, shell=True)
+	result, err = p.communicate()
+	if p.returncode != 0:
+		raise IOError(err)
+	return int(result.strip().split()[0])
 
 rule readcounts: 
 	input: 
