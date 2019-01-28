@@ -1,5 +1,5 @@
 import re,os,subprocess
-from os.path import join
+from os.path import join, expanduser, abspath
 
 ################################################################################
 # specify project directories
@@ -7,6 +7,11 @@ DATA_DIR    = config["raw_reads_directory"]
 PROJECT_DIR = config["output_directory"]
 READ_SUFFIX = config["read_specification"]
 EXTENSION   = config["extension"]
+
+# convert PROJECT_DIR to absolute path
+if PROJECT_DIR[0] == '~':
+	PROJECT_DIR = expanduser(PROJECT_DIR)
+PROJECT_DIR = abspath(PROJECT_DIR)
 
 # get file names
 FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
@@ -22,6 +27,7 @@ rule all:
 		join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
+		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
 
@@ -196,7 +202,6 @@ rule assembly_meta_file:
 	output: join(PROJECT_DIR, "01_processing/assembly_input.txt")
 	run:
 		outfile = str(output)
-		print(outfile)
 		if (os.path.exists(outfile)): 
 			os.remove(outfile)
 		with open(outfile, 'w') as outf:
@@ -206,6 +211,22 @@ rule assembly_meta_file:
 				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq"),
 				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq"),
 				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq")])]
+				outf.writelines('\t'.join(outline) + '\n')
+
+################################################################################
+rule classification_meta_file:
+	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+	output: join(PROJECT_DIR, "01_processing/classification_input.txt")
+	run:
+		outfile = str(output)
+		if (os.path.exists(outfile)): 
+			os.remove(outfile)
+		with open(outfile, 'w') as outf:
+			outf.writelines(['# Sample\tr1\tr2\n'])
+			for sample in SAMPLE_PREFIX:
+				outline = [sample, '\t'.join([
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq")])]
 				outf.writelines('\t'.join(outline) + '\n')
 
 ################################################################################
