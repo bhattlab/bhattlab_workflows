@@ -22,10 +22,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
-		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
@@ -36,7 +36,7 @@ rule pre_fastqc:
 	input:  join(DATA_DIR, "{sample}_{read}") + EXTENSION
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
 	params:
-		outdir = join(PROJECT_DIR, "/01_processing/00_qc_reports/pre_fastqc/")
+		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/")
 	threads: 1
 	resources:
 			time = 1,
@@ -136,8 +136,8 @@ rule rm_host_reads:
 		orp       = rules.sync.output.orp
 	output:
 		unmapped_1 = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_1.fq"),
-		unmapped_2 = join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_2.fq"),
-		unmapped_orp = join(PROJECT_DIR,"01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
+		unmapped_2 = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_2.fq"),
+		unmapped_orp = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
 	threads: 4
 	resources:
 		mem=16,
@@ -176,7 +176,7 @@ rule post_fastqc:
 	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
 	params:
-		outdir = join(PROJECT_DIR, "/01_processing/00_qc_reports/post_fastqc/")
+		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/")
 	threads: 1
 	resources:
 			time = 1,
