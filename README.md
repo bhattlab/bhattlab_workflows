@@ -39,6 +39,7 @@ To use this pipeline, edit parameters in the config_preprocessing.yaml, and spec
 1. directory path containing demultiplexed raw fastq files (DATA_DIR)
 2. root directory path for output files (PROJECT_DIR)
 3. directory path for the host reference genome (BWA index)
+4. Directory of the scripts folder from the github, contains sync.py and plot_readcounts.R
 
 *This program runs under the assumption samples are named <sample_id>\_[R]1.fastq[fq].gz and <sample_id>\_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config. 
 
