@@ -122,9 +122,11 @@ rule sync:
 		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
+	params: 
+		scripts_folder = config["scripts_dir"]
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/03_sync/
-		/labs/asbhatt/ribado/tools/bhattlab_workflows/preprocessing/scripts/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
+		{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
 	"""
 
 ################################################################################
@@ -163,9 +165,11 @@ rule rm_host_sync:
 		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
+	params: 
+		scripts_folder = config["scripts_dir"]
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/05_sync/
-		/labs/asbhatt/ribado/tools/bhattlab_workflows/preprocessing/scripts/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
+		{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
 		# concatinate the orphans reads after host removal with the orphan reads from syncing prior to host removal
 		cat {input.orp} >> {output.orp}
 
@@ -283,5 +287,7 @@ rule readcounts_graph:
 		rules.readcounts.output
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
+	params: 
+		scripts_folder = config["scripts_dir"]
 	script:
-		"scripts/plot_readcounts.R"
+		join("{params.scripts_folder}", "plot_readcounts.R")

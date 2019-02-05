@@ -3,6 +3,8 @@ raw_reads_directory: raw_data
 output_directory: preprocessing
 read_specification: ['R1', 'R2'] #['1', '2'] # or ['R1', 'R2']
 extension: .fastq.gz # or .fastq.gz (should be gzipped regardless) - must include the period!
+# scripts direcrory in the github repo - has sync.py and plot_readcounts.R
+scripts_dir: scripts
 
 # specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
