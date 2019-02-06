@@ -183,7 +183,7 @@ rule post_fastqc:
 		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/")
 	threads: 1
 	resources:
-			time = 1,
+			time = 6,
 			mem = 16
 	shell: """
 		mkdir -p {params.outdir}
