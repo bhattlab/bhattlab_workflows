@@ -15,7 +15,7 @@ PROJECT_DIR = abspath(PROJECT_DIR)
 
 # get file names
 FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
-SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2', i)[0] for i in FILES]))
+SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2|_PE1|_PE2', i)[0] for i in FILES]))
 
 ################################################################################
 localrules: assembly_meta_file, pre_multiqc, post_multiqc
