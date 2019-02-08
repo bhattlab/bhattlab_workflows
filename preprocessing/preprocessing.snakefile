@@ -251,6 +251,8 @@ rule readcounts:
 		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.tsv")
+	resources:
+		time = 24
 	run:
 		outfile = str(output)
 		if (os.path.exists(outfile)):
