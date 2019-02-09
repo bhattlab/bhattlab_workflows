@@ -21,7 +21,7 @@ SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2|_PE1|_PE2', i)[0] for i in
 localrules: assembly_meta_file, pre_multiqc, post_multiqc
 rule all:
 	input:
-		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
+		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
 		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
 		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
 		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
@@ -176,8 +176,21 @@ rule rm_host_sync:
 	"""
 
 ################################################################################
+rule zip:
+	input: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
+	output: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
+	params:
+		scripts_folder = config["scripts_dir"]
+	threads: 8
+	resources:
+		time = 1,
+		mem = 8
+	shell:
+		"pigz -8 {input}"
+
+################################################################################
 rule post_fastqc:
-	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
+	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"),
 	params:
 		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/")
@@ -202,7 +215,7 @@ rule post_multiqc:
 
 ################################################################################
 rule assembly_meta_file:
-	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
 	output: join(PROJECT_DIR, "01_processing/assembly_input.txt")
 	run:
 		outfile = str(output)
@@ -219,7 +232,7 @@ rule assembly_meta_file:
 
 ################################################################################
 rule classification_meta_file:
-	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
 	output: join(PROJECT_DIR, "01_processing/classification_input.txt")
 	run:
 		outfile = str(output)
@@ -248,7 +261,7 @@ rule readcounts:
 		trimmed = expand(join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz", sample=SAMPLE_PREFIX),
 		dedup = expand(join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
 		rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"), sample=SAMPLE_PREFIX),
-		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX)
+		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.tsv")
 	resources:
@@ -293,3 +306,7 @@ rule readcounts_graph:
 		scripts_folder = config["scripts_dir"]
 	script:
 		"scripts/plot_readcounts.R"
+
+################################################################################
+rule cleanup:
+	input:
