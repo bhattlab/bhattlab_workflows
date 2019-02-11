@@ -142,7 +142,7 @@ rule rm_host_reads:
 		unmapped_orp = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
 	threads: 4
 	resources:
-		mem=16,
+		mem=64,
 		time=24
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
