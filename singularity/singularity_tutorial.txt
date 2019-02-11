@@ -1,0 +1,41 @@
+#first, connect to your vm
+#go to vm instances in navigation bar
+#make sure vm hardware is modest and cheap
+#start vm on cloud.google.com
+#get ip address once it's started
+#ssh into vm
+
+wget -O- http://neuro.debian.net/lists/xenial.us-ca.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+sudo apt-key adv --recv-keys --keyserver hkp://pool.sks-keyservers.net:80 0xA5D32F012649A5A9
+sudo apt-get update
+sudo apt-get install singularity-container
+
+#get a singularity container recipe
+git clone https://github.com/elimoss/metagenomics_workflows.git
+cd metagenomics_workflows/long_read_assembly/
+
+#build an image as a writable folder
+sudo singularity build --sandbox test_build Singularity.longread
+
+#open an interactive session on your image--useful for debugging a build
+sudo singularity shell --writable test_build/
+
+#build an image as a read-only .simg file ready for distribution from a sandbox build
+sudo singularity build test_build.simg test_build/
+
+#build an image as a read-only .simg file ready for distribution from a recipe
+sudo singularity build test_build.simg Singularity.longread
+
+#execute a single command on your image (can be sandbox or simg)
+singularity exec test_build[.simg] command goes here
+
+
+#set up singularity hub!
+#go to singularity-hub.org
+#sign in with github
+#create a collection and associate it with your github repository
+
+#once the image seems to build as you like, commit changes to the recipe and push to your repo
+#the image on singularity hub will build automatically after new commits
+#the locally built images are for testing only, and aren't used for anything.  you may delete them.
+#do not track them with git!
