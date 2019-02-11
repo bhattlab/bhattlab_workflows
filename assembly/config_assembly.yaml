@@ -1,0 +1,3 @@
+assemblers: ["spades", 'megahit']
+output_directory: /path/to/output
+sample_table: preprocessing/01_processing/assembly_input.txt
