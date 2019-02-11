@@ -1,3 +1,24 @@
+set up singularity hub!
+go to singularity-hub.org
+sign in with github
+create a collection and associate it with your github repository
+
+write and revise a container recipe.  For an example, please
+see the model available in this folder.
+commit changes to the container recipe and push to your repo
+the image on singularity hub will build automatically after new commits
+
+
+
+#================================================================
+#SUPPLEMENTAL STUFF
+
+#execute a single command on your image (can be sandbox or simg)
+singularity exec test_build[.simg] command goes here
+
+
+#if you want to build singularity images interactively, you can do the following:
+
 #first, connect to your vm
 #go to vm instances in navigation bar
 #make sure vm hardware is modest and cheap
@@ -25,17 +46,3 @@ sudo singularity build test_build.simg test_build/
 
 #build an image as a read-only .simg file ready for distribution from a recipe
 sudo singularity build test_build.simg Singularity.longread
-
-#execute a single command on your image (can be sandbox or simg)
-singularity exec test_build[.simg] command goes here
-
-
-#set up singularity hub!
-#go to singularity-hub.org
-#sign in with github
-#create a collection and associate it with your github repository
-
-#once the image seems to build as you like, commit changes to the recipe and push to your repo
-#the image on singularity hub will build automatically after new commits
-#the locally built images are for testing only, and aren't used for anything.  you may delete them.
-#do not track them with git!
