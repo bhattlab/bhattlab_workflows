@@ -179,8 +179,6 @@ rule rm_host_sync:
 rule zip:
 	input: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
 	output: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
-	params:
-		scripts_folder = config["scripts_dir"]
 	threads: 8
 	resources:
 		time = 1,
@@ -305,7 +303,7 @@ rule readcounts_graph:
 	params:
 		scripts_folder = config["scripts_dir"]
 	script:
-		"scripts/plot_readcounts.R"
+		join("{params.scripts_folder}", "plot_readcounts.R")
 
 ################################################################################
 rule cleanup:
