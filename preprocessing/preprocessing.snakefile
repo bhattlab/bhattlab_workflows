@@ -18,7 +18,7 @@ FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz
 SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2|_PE1|_PE2', i)[0] for i in FILES]))
 
 ################################################################################
-localrules: assembly_meta_file, pre_multiqc, post_multiqc
+localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
