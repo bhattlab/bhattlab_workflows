@@ -40,7 +40,7 @@ rule pre_fastqc:
 	threads: 1
 	resources:
 			time = 1,
-			mem = 16
+			mem = 32
 	shell: """
 		mkdir -p {params.outdir}
 		fastqc {input} --outdir {params.outdir}
@@ -54,7 +54,7 @@ rule pre_multiqc:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/")
 	shell: """
-		multiqc {params.indir} -o {params.outdir}
+		multiqc --force {params.indir} -o {params.outdir}
 	"""
 
 ################################################################################
@@ -142,7 +142,7 @@ rule rm_host_reads:
 		unmapped_orp = join(PROJECT_DIR, "01_processing/04_host_align/{sample}_rmHost_unpaired.fq")
 	threads: 4
 	resources:
-		mem=16,
+		mem=32,
 		time=24
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
@@ -197,7 +197,7 @@ rule post_fastqc:
 	threads: 1
 	resources:
 			time = 6,
-			mem = 16
+			mem = 32
 	shell: """
 		mkdir -p {params.outdir}
 		fastqc {input} -f fastq --outdir {params.outdir}
@@ -210,7 +210,7 @@ rule post_multiqc:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/")
 	shell: """
-		multiqc {params.indir} -o {params.outdir}
+		multiqc --force {params.indir} -o {params.outdir}
 	"""
 
 ################################################################################
@@ -308,5 +308,5 @@ rule readcounts_graph:
 		"scripts/plot_readcounts.R"
 
 ################################################################################
-rule cleanup:
-	input:
+#rule cleanup:
+#	input:
