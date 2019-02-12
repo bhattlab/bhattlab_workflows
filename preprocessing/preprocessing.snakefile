@@ -306,7 +306,3 @@ rule readcounts_graph:
 		scripts_folder = config["scripts_dir"]
 	script:
 		"scripts/plot_readcounts.R"
-
-################################################################################
-#rule cleanup:
-#	input:
