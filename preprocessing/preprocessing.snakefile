@@ -306,3 +306,15 @@ rule readcounts_graph:
 		scripts_folder = config["scripts_dir"]
 	script:
 		"scripts/plot_readcounts.R"
+
+################################################################################
+rule cleanup:
+	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
+	output: join(PROJECT_DIR, "cleaned")
+	shell: """
+		rm {PROJECT_DIR}/01_processing/01_trimmed/*.fq.gz
+		rm {PROJECT_DIR}/01_processing/02_dereplicate/*.fastq
+		rm {PROJECT_DIR}/01_processing/03_sync/*.fq
+		rm {PROJECT_DIR}/01_processing/04_host_align/*.fq
+		touch {output}
+	""""
