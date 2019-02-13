@@ -162,31 +162,35 @@ rule rm_host_sync:
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp
 	output:
-		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
-		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
-		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
-	params:
-		scripts_folder = config["scripts_dir"]
-	shell: """
-		mkdir -p {PROJECT_DIR}/01_processing/05_sync/
-		{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} {output.fwd} {output.rev} {output.orp}
-		# concatinate the orphans reads after host removal with the orphan reads from syncing prior to host removal
-		cat {input.orp} >> {output.orp}
-
-	"""
-
-################################################################################
-rule zip:
-	input: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
-	output: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
+		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"),
+		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq.gz"),
+		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz")
 	params:
 		scripts_folder = config["scripts_dir"]
 	threads: 8
-	resources:
-		time = 1,
-		mem = 8
 	shell:
-		"pigz -8 {input}"
+		" mkdir -p {PROJECT_DIR}/01_processing/05_sync/ " \
+		"{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} " \
+		"{PROJECT_DIR}/01_processing/05_sync/{sample}_1.fq " \
+		"{PROJECT_DIR}/01_processing/05_sync/{sample}_2.fq {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq " \
+		"# concatenate the orphans reads after host removal with the orphan reads from syncing prior to host removal " \
+		"cat {input.orp} >> {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_1.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_2.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq"
+
+################################################################################
+# rule zip:
+# 	input: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
+# 	output: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
+# 	params:
+# 		scripts_folder = config["scripts_dir"]
+# 	threads: 8
+# 	resources:
+# 		time = 1,
+# 		mem = 8
+# 	shell:
+# 		"pigz -8 {input}"
 
 ################################################################################
 rule post_fastqc:
@@ -311,10 +315,9 @@ rule readcounts_graph:
 rule cleanup:
 	input: expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
 	output: join(PROJECT_DIR, "cleaned")
-	shell: """
-		rm {PROJECT_DIR}/01_processing/01_trimmed/*.fq.gz
-		rm {PROJECT_DIR}/01_processing/02_dereplicate/*.fastq
-		rm {PROJECT_DIR}/01_processing/03_sync/*.fq
-		rm {PROJECT_DIR}/01_processing/04_host_align/*.fq
-		touch {output}
-	""""
+	shell:
+		"rm {PROJECT_DIR}/01_processing/01_trimmed/*.fq.gz / "
+		"rm {PROJECT_DIR}/01_processing/02_dereplicate/*.fastq / "
+		"rm {PROJECT_DIR}/01_processing/03_sync/*.fq / "
+		"rm {PROJECT_DIR}/01_processing/04_host_align/*.fq / "
+		"touch {output}"
