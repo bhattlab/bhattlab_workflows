@@ -171,13 +171,13 @@ rule rm_host_sync:
 	shell:
 		" mkdir -p {PROJECT_DIR}/01_processing/05_sync/ " \
 		"{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} " \
-		"{PROJECT_DIR}/01_processing/05_sync/{sample}_1.fq " \
-		"{PROJECT_DIR}/01_processing/05_sync/{sample}_2.fq {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq " \
+		"{PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_1.fq " \
+		"{PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_2.fq {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq " \
 		"# concatenate the orphans reads after host removal with the orphan reads from syncing prior to host removal " \
-		"cat {input.orp} >> {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq " \
-		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_1.fq " \
-		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_2.fq " \
-		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{sample}_orphans.fq"
+		"cat {input.orp} >> {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_1.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_2.fq " \
+		"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq"
 
 ################################################################################
 # rule zip:
