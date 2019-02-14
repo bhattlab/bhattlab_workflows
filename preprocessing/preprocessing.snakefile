@@ -264,7 +264,7 @@ rule readcounts:
 		raw = expand(join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION, sample=SAMPLE_PREFIX),
 		trimmed = expand(join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz", sample=SAMPLE_PREFIX),
 		dedup = expand(join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
-		rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"), sample=SAMPLE_PREFIX),
+		rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"), sample=SAMPLE_PREFIX),
 		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.tsv")
