@@ -304,8 +304,6 @@ rule readcounts_graph:
 		rules.readcounts.output
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
-	params:
-		scripts_folder = config["scripts_dir"]
 	script:
 		"scripts/plot_readcounts.R"
 
