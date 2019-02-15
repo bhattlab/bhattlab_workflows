@@ -32,6 +32,7 @@ Modified on 7-6-17 by Joyce Kang
 import gzip
 import re
 import sys
+import shutil
 
 
 def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphans):
@@ -71,20 +72,24 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
     for header in headers:
         
         if header == head(a) and header != head(b):
-            print('\n'.join(a), file=orphans)
+            orphans.write(('\n'.join(a)+'\n'))
+            # print('\n'.join(a), file=orphans)
             a = next_record(reads_a)
             orphaned_a += 1
             total_a += 1
 
         if header == head(b) and header != head(a):
-            print('\n'.join(b), file=orphans)
+            orphans.write(('\n'.join(b)+'\n'))
+            # print('\n'.join(b), file=orphans)
             b = next_record(reads_b)
             orphaned_b += 1
             total_b += 1
 
         if header == head(a) == head(b):
-            print('\n'.join(a), file=synced_a)
-            print('\n'.join(b), file=synced_b)
+            synced_a.write(('\n'.join(a)+'\n'))
+            synced_b.write(('\n'.join(b)+'\n'))
+            # print('\n'.join(a), file=synced_a)
+            # print('\n'.join(b), file=synced_b)
             a, b = next_record(reads_a), next_record(reads_b)
             kept += 1
             total_a += 1
@@ -95,22 +100,57 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
 def _open(filename, mode='r'):
     if filename.endswith('.gz'):
+        # if mode.startswith('w'):
+            # return gzip.open(filename, 'wb')
+        # elif mode.startswith('r'): 
+            # return gzip.open(filename, 'rt')
+        # else:
         return gzip.open(filename, mode)
     return open(filename, mode)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 7:
-        sys.stderr.write(__doc__.split('\n\n\n')[0].strip().format(
-            command=sys.argv[0]) + '\n')
-        sys.exit(1)
+
+    # old command line arguments
+    # if len(sys.argv) < 7:
+    #     sys.stderr.write(__doc__.split('\n\n\n')[0].strip().format(
+    #         command=sys.argv[0]) + '\n')
+    #     sys.exit(1)
+    # try:
+    #     original = _open(sys.argv[1], 'rt')
+    #     reads_a = _open(sys.argv[2], 'rt')
+    #     reads_b = _open(sys.argv[3], 'rt')
+    #     synced_a = _open(sys.argv[4], 'w')
+    #     synced_b = _open(sys.argv[5], 'w')
+    #     orphans = _open(sys.argv[6], 'w')
+    #     total_a, total_b, kept, orphaned_a, orphaned_b = \
+    #                 sync_paired_end_reads(original, reads_a, reads_b,
+    #                                       synced_a, synced_b, orphans)
+    #     print('Total %i reads from forward read file.' % total_a)
+    #     print('Total %i reads from reverse read file.' % total_b)
+    #     print('Synced read files contain %i reads.' % kept)
+    #     print('Put %i forward reads in the orphans file.' % orphaned_a)
+    #     print('Put %i reverse reads in the orphans file.' % orphaned_b)
+    # except IOError as xxx_todo_changeme:
+    #     (_, message) = xxx_todo_changeme.args
+    #     sys.stderr.write('Error: %s\n' % message)
+    #     sys.exit(1)
+
+    # print(len(snakemake.input))
+    # print((snakemake.input))
+    # print(len(snakemake.output))
+    # print((snakemake.output))
+    if (len(snakemake.input) != 3 | len(snakemake.input) != 4) | len(snakemake.output) != 3:
+        sys.exit('snakemake input must have length 3 or 4: <orig.fq> <reads_1.fq> <reads_2.fq> [<extra_orphans.fq>]\n \
+            snakemake output must have length 3: <reads_1.synced.fq> <reads_2.synced.fq> <orphans.fq>')
+
     try:
-        original = _open(sys.argv[1], 'rt')
-        reads_a = _open(sys.argv[2], 'rt')
-        reads_b = _open(sys.argv[3], 'rt')
-        synced_a = _open(sys.argv[4], 'w')
-        synced_b = _open(sys.argv[5], 'w')
-        orphans = _open(sys.argv[6], 'w')
+        original = _open(snakemake.input['rep_fwd'], mode='rt')
+        reads_a = _open(snakemake.input['fwd'], mode='rt')
+        reads_b = _open(snakemake.input['rev'], mode='rt')
+        synced_a = _open(snakemake.output['fwd'], mode='wt')
+        synced_b = _open(snakemake.output['rev'], mode='wt')
+        orphans = _open(snakemake.output['orp'], mode='wt')
         total_a, total_b, kept, orphaned_a, orphaned_b = \
                     sync_paired_end_reads(original, reads_a, reads_b,
                                           synced_a, synced_b, orphans)
@@ -119,6 +159,13 @@ if __name__ == '__main__':
         print('Synced read files contain %i reads.' % kept)
         print('Put %i forward reads in the orphans file.' % orphaned_a)
         print('Put %i reverse reads in the orphans file.' % orphaned_b)
+
+        if (len(snakemake.input) == 4):
+            print('Adding extra orphans to output file')
+            with _open(snakemake.input['orp'], 'rt') as orphans_extra:
+                for line in orphans_extra:
+                    orphans.write(line)
+    
     except IOError as xxx_todo_changeme:
         (_, message) = xxx_todo_changeme.args
         sys.stderr.write('Error: %s\n' % message)
