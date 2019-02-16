@@ -1,3 +1,6 @@
 .DS_Store
 ._.DS_Store
 ._preprocessing.snakefile
+.snakemake*
+*.swp
+
