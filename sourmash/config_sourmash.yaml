@@ -1,0 +1,5 @@
+# specify directories
+# FINAL synced output directory of the preprocessing pipeline. 
+# Has the preprocessed reads {sample}_1.fq.gz, {sample}_2.fq.gz, {sample}_orphans.fq.gz
+preprocessing_directory: ''
+output_directory: 'sourmash'
