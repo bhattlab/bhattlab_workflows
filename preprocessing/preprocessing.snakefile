@@ -229,9 +229,9 @@ rule assembly_meta_file:
 			outf.writelines(['# Sample\tReads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]\n'])
 			for sample in SAMPLE_PREFIX:
 				outline = [sample, ','.join([
-				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq"),
-				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq"),
-				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq")])]
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq.gz"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq.gz"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq.gz")])]
 				outf.writelines('\t'.join(outline) + '\n')
 
 ################################################################################
@@ -246,8 +246,8 @@ rule classification_meta_file:
 			outf.writelines(['# Sample\tr1\tr2\n'])
 			for sample in SAMPLE_PREFIX:
 				outline = [sample, '\t'.join([
-				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq"),
-				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq")])]
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq.gz"),
+				join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_2.fq.gz")])]
 				outf.writelines('\t'.join(outline) + '\n')
 
 ################################################################################
