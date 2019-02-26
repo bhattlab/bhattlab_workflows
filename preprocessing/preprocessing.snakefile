@@ -122,8 +122,8 @@ rule sync:
 		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
-    resources: 
-        time=12
+	resources: 
+		time=12
 	script: 
 		"scripts/sync.py"
 
