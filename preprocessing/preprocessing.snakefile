@@ -163,8 +163,6 @@ rule rm_host_sync:
 		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"),
 		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq.gz"),
 		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz")
-	params:
-		scripts_folder = config["scripts_dir"]
 	threads: 1
 	resources:
 		time = 12
