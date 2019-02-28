@@ -60,7 +60,7 @@ rule compute:
         join(outdir, "03_sourmash_signatures/{sample}.sig")
     threads:1
     resources: 
-        time=12
+        time=lambda wildcards, attempt: 12 * attempt,
     shell:
         """
         sourmash compute --scaled 10000 \
