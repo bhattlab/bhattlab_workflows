@@ -56,9 +56,11 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
            lines after original is processed).
     """
 
+    srr_pattern = '@SRR[0-9]+\.[0-9]+\.[1-2]$'
+
     def next_record(fh):
         a = [fh.readline().strip() for i in range(4)]
-        if a[0].startswith('@SRR'):
+        if re.match(srr_pattern, a[0]):
             a[0] = a[0].split(' ')[0][0:-2]
         return a
 
@@ -75,7 +77,7 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
     for header in headers:
         # in the case of reads coming from SRA, pair information is in the 
         # header here and needs to be eliminated for syncing to work
-        if header.startswith('@SRR'):
+        if re.match(srr_pattern, header):
             header_fixed = header[0:-2]
             header = header_fixed
  
