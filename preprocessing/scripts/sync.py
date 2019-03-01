@@ -60,8 +60,11 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
         return [fh.readline().strip() for i in range(4)]
 
     def head(record):
-        full_head = record[0].split(' ')
-        return full_head[0]
+        header = record[0].split(' ')[0]
+        if header.startswith('@SRR'):
+            header_fixed = header[0:-2]
+            header = header_fixed
+        return header
 
     headers = (x.strip().split(' ')[0] for i, x in enumerate(original) if not (i % 4))
 
@@ -70,7 +73,11 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
     a, b = next_record(reads_a), next_record(reads_b)
 
     for header in headers:
-        
+        # in the case of reads coming from SRA, pair information is in the 
+        # header here and needs to be eliminated for syncing to work
+        if header.startswith('@SRR'):
+            header_fixed = header[0:-2]
+            header = header_fixed
         if header == head(a) and header != head(b):
             orphans.write(('\n'.join(a)+'\n'))
             # print('\n'.join(a), file=orphans)
