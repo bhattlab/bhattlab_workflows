@@ -65,7 +65,7 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
         return a
 
     def head(record):
-        header = record[0].split(' ')[0]
+        header = record[0].split(' ')[0].split('\t')[0]
         return header
 
     headers = (x.strip().split(' ')[0] for i, x in enumerate(original) if not (i % 4))
