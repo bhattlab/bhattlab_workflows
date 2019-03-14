@@ -11,7 +11,7 @@ from: ubuntu:19.04
 %post
     apt-get update
 		apt-get install -y wget bzip2 \
-      ca-certificates
+      ca-certificates libreadline6 libreadline6-dev
     apt-get clean
 
     # install anaconda
