@@ -28,8 +28,10 @@ from: ubuntu:19.04
 
 		#install plotting stuff
 
-		 conda install -y -c bioconda -c r \
+		 conda install -y -c conda-forge -c bioconda -c r \
        r r-ggplot2 r-reshape2 r-rcolorbrewer \
-			 readline
+			 readline=6.2
+
+
 
 			 #add more stuff here if needed for plotting stuff with this container
