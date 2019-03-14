@@ -14,7 +14,7 @@ if PROJECT_DIR[0] == '~':
 PROJECT_DIR = abspath(PROJECT_DIR)
 
 # get file names
-FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
+FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(EXTENSION)]
 SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2|_PE1|_PE2', i)[0] for i in FILES]))
 
 ################################################################################
@@ -41,6 +41,7 @@ rule pre_fastqc:
 	resources:
 			time = 1,
 			mem = 32
+	singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
 	shell: """
 		mkdir -p {params.outdir}
 		fastqc {input} --outdir {params.outdir}
@@ -53,6 +54,7 @@ rule pre_multiqc:
 	params:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/")
+	singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
 	shell: """
 		multiqc --force {params.indir} -o {params.outdir}
 	"""
@@ -76,6 +78,7 @@ rule trim_galore:
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
 		min_len = config['trim_galore']['min_read_length']
+	singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/01_trimmed/
 		trim_galore --quality {params.q_min} \
@@ -103,6 +106,7 @@ rule dereplicate:
 	resources:
 		mem=32,
 		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/02_dereplicate/
 		seqkit rmdup --by-seq {input.fwd} > {output.fwd} \
@@ -122,9 +126,9 @@ rule sync:
 		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
-	resources: 
+	resources:
 		time=12
-	script: 
+	script:
 		"scripts/sync.py"
 
 ################################################################################
@@ -142,6 +146,7 @@ rule rm_host_reads:
 	resources:
 		mem=32,
 		time=24
+	singularity: "docker://quay.io/biocontainers/bwa:0.7.3a--h84994c4_4"
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
 		# if an index needs to be built, use bwa index ref.fa
@@ -166,7 +171,7 @@ rule rm_host_sync:
 	threads: 1
 	resources:
 		time = 12
-	script: 
+	script:
 		"scripts/sync.py"
 	# shell:
 	# 	" mkdir -p {PROJECT_DIR}/01_processing/05_sync/ " \
@@ -202,6 +207,7 @@ rule post_fastqc:
 	resources:
 			time = 6,
 			mem = 32
+	singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
 	shell: """
 		mkdir -p {params.outdir}
 		fastqc {input} -f fastq --outdir {params.outdir}
@@ -213,6 +219,7 @@ rule post_multiqc:
 	params:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/")
+	singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
 	shell: """
 		multiqc --force {params.indir} -o {params.outdir}
 	"""
@@ -306,6 +313,7 @@ rule readcounts_graph:
 		rules.readcounts.output
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
+	singularity: "shub://bhattlab/bhattlab_workflows:plotting"
 	script:
 		"scripts/plot_readcounts.R"
 
