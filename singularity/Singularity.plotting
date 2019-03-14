@@ -11,8 +11,10 @@ from: ubuntu:19.04
 %post
     apt-get update
 		apt-get install -y wget bzip2 \
-      ca-certificates libreadline6 libreadline6-dev
+      ca-certificates
     apt-get clean
+
+		apt-get install -y libreadline6 readline-common
 
     # install anaconda
     if [ ! -d /usr/local/anaconda ]; then
