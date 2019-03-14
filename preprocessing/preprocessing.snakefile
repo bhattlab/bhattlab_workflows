@@ -146,7 +146,7 @@ rule rm_host_reads:
 	resources:
 		mem=32,
 		time=24
-	singularity: "docker://quay.io/biocontainers/bwa:0.7.3a--h84994c4_4"
+	singularity: "shub://bhattlab/bhattlab_workflows:align"
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
 		# if an index needs to be built, use bwa index ref.fa
