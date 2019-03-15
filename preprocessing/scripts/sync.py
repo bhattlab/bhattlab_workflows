@@ -60,6 +60,7 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
     def next_record(fh):
         a = [fh.readline().strip() for i in range(4)]
+        a[0] = head(a)
         if re.match(srr_pattern, a[0]):
             a[0] = a[0].split(' ')[0][0:-2]
         return a
@@ -73,13 +74,13 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
     total_a = total_b = kept = orphaned_a = orphaned_b = 0
 
     a, b = next_record(reads_a), next_record(reads_b)
-
     for header in headers:
         # in the case of reads coming from SRA, pair information is in the 
         # header here and needs to be eliminated for syncing to work
         if re.match(srr_pattern, header):
             header_fixed = header[0:-2]
             header = header_fixed
+            # print(header)
  
         if header == head(a) and header != head(b):
             orphans.write(('\n'.join(a)+'\n'))
