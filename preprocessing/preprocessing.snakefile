@@ -85,7 +85,7 @@ rule trim_galore:
  		min_len = config['trim_galore']['min_read_length'],
 		outdir  = join(PROJECT_DIR, "01_processing/01_trimmed/"),
 		gz_output = str(gz_ext == '.gz').lower()
-  singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
+	singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
 	shell: """
 		mkdir -p {params.outdir}
 		trim_galore --quality {params.q_min} \
@@ -130,7 +130,7 @@ rule dereplicate:
 		seqkit rmdup --by-seq {input.fwd} -D {params.details_fwd} > {output.fwd}
 		seqkit rmdup --by-seq {input.rev} -D {params.details_rev} > {output.rev}
 		seqkit rmdup --by-seq {input.orp} -D {params.details_orp} > {output.orp}
-		
+
 	"""
 ################################################################################
 rule sync:
