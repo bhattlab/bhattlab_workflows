@@ -25,10 +25,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
@@ -82,7 +82,7 @@ rule trim_galore:
 		# output_rev_pre_gz = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq",
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
- 		min_len = config['trim_galore']['min_read_length'],
+		min_len = config['trim_galore']['min_read_length'],
 		outdir  = join(PROJECT_DIR, "01_processing/01_trimmed/"),
 		gz_output = str(gz_ext == '.gz').lower()
 	singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
@@ -105,12 +105,58 @@ rule trim_galore:
 		rm {params.orp_fwd} {params.orp_rev}
 	"""
 
+rule sort_trimmed_fwd:
+	input:
+		fwd = rules.trim_galore.output.fwd,
+	output:
+		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_val_1_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		zcat -f {input.fwd} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" | gzip > {output.fwd}
+		
+		# remove old unsorted input
+		rm {input.fwd}
+	"""
+
+rule sort_trimmed_rev:
+	input:
+		rev = rules.trim_galore.output.rev,
+	output:
+		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[1] + "_val_2_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		zcat -f {input.rev} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" | gzip > {output.rev}
+		
+		# remove old unsorted input
+		rm {input.rev}
+	"""
+
+rule sort_trimmed_orp:
+	input:
+		orp = rules.trim_galore.output.orp
+	output:
+		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired_sorted.fq.gz")
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		zcat -f {input.orp} | paste - - - - | sort -k1,1 -t " " | tr "\t" "\n" | gzip > {output.orp}
+		
+		# remove old unsorted input
+		rm {input.rev}
+	"""
+
+
 ################################################################################
 rule dereplicate:
 	input:
-		fwd = rules.trim_galore.output.fwd,
-		rev = rules.trim_galore.output.rev,
-		orp = rules.trim_galore.output.orp
+		fwd = rules.sort_trimmed_fwd.output,
+		rev = rules.sort_trimmed_rev.output,
+		orp = rules.sort_trimmed_orp.output
 	output:
 		fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
 		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
@@ -135,7 +181,7 @@ rule dereplicate:
 ################################################################################
 rule sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
+		rep_fwd  = rules.sort_trimmed_fwd.output,
 		fwd = rules.dereplicate.output.fwd,
 		rev = rules.dereplicate.output.rev
 	output:
@@ -176,7 +222,7 @@ rule rm_host_reads:
 ################################################################################
 rule rm_host_sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
+		rep_fwd  = rules.sort_trimmed_fwd.output,
 		fwd = rules.rm_host_reads.output.unmapped_1,
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp

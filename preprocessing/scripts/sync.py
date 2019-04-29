@@ -35,6 +35,12 @@ import sys
 import shutil
 
 
+# natural sort function from Mark Byers on Stack Overflow
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
+
 def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphans):
     """
     Filter out reads from two paired end read files that are not present in
@@ -60,7 +66,6 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
     def next_record(fh):
         a = [fh.readline().strip() for i in range(4)]
-        a[0] = head(a)
         if re.match(srr_pattern, a[0]):
             a[0] = a[0].split(' ')[0][0:-2]
         return a
@@ -69,34 +74,49 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
         header = record[0].split(' ')[0].split('\t')[0]
         return header
 
-    headers = (x.strip().split(' ')[0] for i, x in enumerate(original) if not (i % 4))
+    headers = (x.strip().split(' ')[0].split('\t')[0] for i, x in enumerate(original) if not (i % 4))
 
     total_a = total_b = kept = orphaned_a = orphaned_b = 0
 
     a, b = next_record(reads_a), next_record(reads_b)
+
     for header in headers:
+        # print(header)
+        # print(head(a))
         # in the case of reads coming from SRA, pair information is in the 
         # header here and needs to be eliminated for syncing to work
+        ha = head(a)
+        hb = head(b)
+
         if re.match(srr_pattern, header):
             header_fixed = header[0:-2]
             header = header_fixed
-            # print(header)
+
+        # files need to be in read name sorted order for this to work. Check 
+        # if thats not the case here
+        if (ha != '' and natural_sort([header,ha])[0] != header) or \
+                   (hb != '' and natural_sort([header,hb])[0] != header):
+            print('Reads must be in read name sorted order. Please sort and re-run.')
+            print("Original reads: " + header)
+            print("Sync 1 reads: " + ha)
+            print("Sync 2 reads: " + hb)
+            raise ValueError
  
-        if header == head(a) and header != head(b):
+        if header == ha and header != hb:
             orphans.write(('\n'.join(a)+'\n'))
             # print('\n'.join(a), file=orphans)
             a = next_record(reads_a)
             orphaned_a += 1
             total_a += 1
 
-        if header == head(b) and header != head(a):
+        if header == hb and header != ha:
             orphans.write(('\n'.join(b)+'\n'))
             # print('\n'.join(b), file=orphans)
             b = next_record(reads_b)
             orphaned_b += 1
             total_b += 1
 
-        if header == head(a) == head(b):
+        if header == ha == hb:
             synced_a.write(('\n'.join(a)+'\n'))
             synced_b.write(('\n'.join(b)+'\n'))
             # print('\n'.join(a), file=synced_a)
