@@ -33,7 +33,9 @@ import gzip
 import re
 import sys
 import shutil
-
+import functools
+import locale
+locale.setlocale(locale.LC_ALL, "C")
 
 # natural sort function from Mark Byers on Stack Overflow
 def natural_sort(l): 
@@ -94,12 +96,38 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
         # files need to be in read name sorted order for this to work. Check 
         # if thats not the case here
-        if (ha != '' and natural_sort([header,ha])[0] != header) or \
-                   (hb != '' and natural_sort([header,hb])[0] != header):
+        l1 = [header,ha]
+        l2 = [header,hb]
+        l1_sorted = l1.copy()
+        l2_sorted = l2.copy()
+        l1_sorted.sort(key=functools.cmp_to_key(locale.strcoll))
+        l2_sorted.sort(key=functools.cmp_to_key(locale.strcoll))
+        if (ha != '' and l1_sorted[0] != header) or \
+                   (hb != '' and l2_sorted[0] != header):
+        # if (ha != '' and l1_natural[0] != header) or \
+        #            (hb != '' and l2_natural[0] != header):
+            l1_sorted2 = l1.copy()
+            l2_sorted2 = l2.copy()
+            l1_sorted2.sort()
+            l2_sorted2.sort()
+            l1_natural = natural_sort(l1)
+            l2_natural = natural_sort(l2)
             print('Reads must be in read name sorted order. Please sort and re-run.')
             print("Original reads: " + header)
-            print("Sync 1 reads: " + ha)
-            print("Sync 2 reads: " + hb)
+            print("Sync 1 reads:   " + ha)
+            print("Sync 2 reads:   " + hb)
+            print('Original')
+            print(l1)
+            print(l2)
+            print('default sorted')
+            print(l1_sorted)
+            print(l2_sorted)
+            print('default sorted no localle')
+            print(l1_sorted2)
+            print(l2_sorted2)
+            print('natural sorted')
+            print(l1_natural)
+            print(l2_natural)
             raise ValueError
  
         if header == ha and header != hb:
@@ -130,6 +158,9 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
 
 def _open(filename, mode='r'):
+    # print(filename)
+    # print(type(filename))
+    # print(type(filename[0]))
     if filename.endswith('.gz'):
         # if mode.startswith('w'):
             # return gzip.open(filename, 'wb')
