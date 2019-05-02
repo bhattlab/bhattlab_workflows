@@ -25,10 +25,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
-		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		# join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		# join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
