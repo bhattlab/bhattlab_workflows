@@ -6,7 +6,7 @@ import sys
 PROJECT_DIR = config["output_directory"]
 # get input samples from sample table
 with open(config["sample_table"]) as inf:
-    insamps = inf.readlines()
+    insamps = [i for i in inf.readlines() if i != '\n']
     sample_dict = {sample: files.split(",") for sample, files in [l.strip().split("\t") for l in insamps]}
 # ensure no comment lines
 sample_dict = {k:sample_dict[k] for k in sample_dict.keys() if k[0] != '#'}
