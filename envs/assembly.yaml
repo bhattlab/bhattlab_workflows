@@ -7,5 +7,6 @@ dependencies:
   - quast
   - spades
   - megahit
-  - snakemake
-  
+  - pip
+  - pip:
+    - snakemake 
