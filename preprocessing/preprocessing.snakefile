@@ -82,7 +82,7 @@ rule trim_galore:
 		# output_rev_pre_gz = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq",
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
- 		min_len = config['trim_galore']['min_read_length'],
+		min_len = config['trim_galore']['min_read_length'],
 		outdir  = join(PROJECT_DIR, "01_processing/01_trimmed/"),
 		gz_output = str(gz_ext == '.gz').lower()
 	singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
@@ -105,21 +105,64 @@ rule trim_galore:
 		rm {params.orp_fwd} {params.orp_rev}
 	"""
 
-################################################################################
-rule dereplicate:
+rule sort_trimmed_fwd:
 	input:
 		fwd = rules.trim_galore.output.fwd,
+	output:
+		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_val_1_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.fwd} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.fwd} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.fwd}
+	"""
+
+rule sort_trimmed_rev:
+	input:
 		rev = rules.trim_galore.output.rev,
+	output:
+		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[1] + "_val_2_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.rev} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.rev} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.rev}
+	"""
+
+rule sort_trimmed_orp:
+	input:
 		orp = rules.trim_galore.output.orp
 	output:
+		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired_sorted.fq.gz")
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.orp} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.orp} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.orp}
+	"""
+
+
+################################################################################
+rule dereplicate_fwd:
+	input:
+		fwd = rules.sort_trimmed_fwd.output,
+	output:
 		fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
-		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
-		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
 	params:
 		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
 		details_fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_1_details.txt"),
-		details_rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_2_details.txt"),
-		details_orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_unpaired_details.txt")
 	threads: 2
 	resources:
 		mem=32,
@@ -128,16 +171,51 @@ rule dereplicate:
 	shell: """
 		mkdir -p {params.outdir}
 		seqkit rmdup --by-seq {input.fwd} -D {params.details_fwd} > {output.fwd}
-		seqkit rmdup --by-seq {input.rev} -D {params.details_rev} > {output.rev}
-		seqkit rmdup --by-seq {input.orp} -D {params.details_orp} > {output.orp}
-
 	"""
+
+rule dereplicate_rev:
+	input:
+		rev = rules.sort_trimmed_rev.output,
+	output:
+		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
+	params:
+		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
+		details_rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_2_details.txt"),
+	threads: 2
+	resources:
+		mem=32,
+		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
+	shell: """
+		mkdir -p {params.outdir}
+		seqkit rmdup --by-seq {input.rev} -D {params.details_rev} > {output.rev}
+	"""
+
+rule dereplicate_orp:
+	input:
+		orp = rules.sort_trimmed_orp.output
+	output:
+		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
+	params:
+		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
+		details_orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_unpaired_details.txt")
+	threads: 2
+	resources:
+		mem=32,
+		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
+	shell: """
+		mkdir -p {params.outdir}
+		seqkit rmdup --by-seq {input.orp} -D {params.details_orp} > {output.orp}
+	"""
+
 ################################################################################
 rule sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
-		fwd = rules.dereplicate.output.fwd,
-		rev = rules.dereplicate.output.rev
+		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
+		fwd = rules.dereplicate_fwd.output.fwd,
+		rev = rules.dereplicate_rev.output.rev,
+		orp = rules.dereplicate_orp.output.orp
 	output:
 		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
@@ -176,7 +254,7 @@ rule rm_host_reads:
 ################################################################################
 rule rm_host_sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
+		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
 		fwd = rules.rm_host_reads.output.unmapped_1,
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp
