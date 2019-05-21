@@ -7,7 +7,7 @@ First, install [miniconda3](https://conda.io/miniconda.html) on the cluster, as 
 # to download installer
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 # to run installer
-bash https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+sh Miniconda3-latest-Linux-x86_64.sh
 # follow instructions, select a place to install miniconda. We recommend installing in the lab directory, /labs/asbhatt/YOURNAME/miniconda3
 #install snakemake
 conda install snakemake
