@@ -16,7 +16,7 @@ Then, if you haven't already, set up a Snakemake profile for SCG by following th
 Then clone this github repository to a place on scg. I keep a 'projects' folder in my home directory for cloning repos.
 ```
 cd ~/projects
-git clone git@github.com:bhattlab/bhattlab_workflows.git
+git clone https://github.com/bhattlab/bhattlab_workflows.git
 cd ~/projects/bhattlab_workflows
 ```
 
