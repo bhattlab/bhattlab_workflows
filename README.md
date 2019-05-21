@@ -10,7 +10,7 @@ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 sh Miniconda3-latest-Linux-x86_64.sh
 # follow instructions, select a place to install miniconda. We recommend installing in the lab directory, /labs/asbhatt/YOURNAME/miniconda3
 #install snakemake
-conda install snakemake
+conda install -c bioconda -c conda-forge snakemake
 ```
 Then, if you haven't already, set up a Snakemake profile for SCG by following the instructions [here](https://github.com/bhattlab/slurm).
 Then clone this github repository to a place on scg. I keep a 'projects' folder in my home directory for cloning repos.
