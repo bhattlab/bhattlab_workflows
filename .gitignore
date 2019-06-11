@@ -3,4 +3,4 @@
 ._preprocessing.snakefile
 .snakemake*
 *.swp
-
+.fuse*
