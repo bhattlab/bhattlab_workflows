@@ -31,12 +31,16 @@ snakemake --configfile config_preprocessing.yaml --snakefile path/to/preprocessi
 For workflows other than preprocessing, conda environments are used.  Set these up like so:
 
 ```
-conda env create -f envs/assembly.yaml #for the assembly environment
+# example for the assembly environment
+# where your working directory is the location you cloned the github repository
+# ~/projects/bhattlab_workflows  for example
+conda env create -f envs/assembly.yaml
 ```
 
 Then run the workflow as follows:
 
 ```
+conda activate assembly
 snakemake --configfile config_assembly.yaml --snakefile path/to/assembly.snakefile \
 --profile scg --jobs 100
 ```
@@ -126,7 +130,19 @@ Binning is essentially clustering for assembled contigs. Create draft metagenome
 
 There are two binning workflows in the `binning` folder. `bin_metabat.snakefile` uses a single binning method ([metabat2](https://peerj.com/articles/1165/)), while `bin_das_tool.snakefile` uses several tools and integrates the result with [DASTool](https://www.nature.com/articles/s41564-018-0171-1). Both use the same downstream evaluation and reporting tools. The DASTool pipeline was made by [Alyssa Benjamin](https://github.com/ambenj).
 
-You can launch either workflow using singularity images with a command like 
+In contrast to other workflows, you must run binning individually for each sample. Change the following options in the `binning/config_binning.yaml` file to match your project:
+- assembly
+- sample
+- outdir_base
+- reads1
+- reads2
+- read_length
+
+You can launch either workflow using singularity to manage all dependencies with a command like, submitting jobs to the SCG cluster:
+```
+snakemake --configfile path/to/config_binning.yaml --snakefile path/to/bin_metabat.snakefile \
+--profile scg --jobs 100 --use-singularity --singularity-args '--bind /labs/ --bind /scratch/ '
+```
 
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.

@@ -1,0 +1,24 @@
+# assembly fasta file 
+assembly: /abs/path/asm/mysamp.fa
+
+# smaple name. Will create a folder with this in outdir_base 
+# for all the reuslts of binning this sample
+sample: mysamp
+# base output directory. Will create direcrorties within for each sample you do this for
+outdir_base: /abs/path/binning
+
+# location of forward and reverse reads
+reads1: /abs/path/reads_1.fq.gz
+reads2: /abs/path/reads_2.fq.gz
+# mean read length
+read_length: 150
+
+# kraken2 database to use for classification
+# do not change this in most cases
+kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_feb2019/genbank_genome_chromosome_scaffold/
+
+# are we using a non-standard (non ncbi) taxonomy
+custom_taxonomy: False
+
+# Working with long reads? Untested with new integration
+long_read: False
