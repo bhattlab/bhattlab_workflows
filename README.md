@@ -144,5 +144,23 @@ snakemake --configfile path/to/config_binning.yaml --snakefile path/to/bin_metab
 --profile scg --jobs 100 --use-singularity --singularity-args '--bind /labs/ --bind /scratch/ '
 ```
 
+## Running binning on many samples
+To make this workflow easy to run on many samples, you need to make a configuration file for each one. If all were preprocessed and assembled with our workflows in the same directory, first make one config file to match your samples. Call this `config_example.yaml`. Put your list of samples, one per line, in `sample_list.txt`. Then you can replace the sample name in the configfile in a loop, changing SAMPLE to the name you used with the example configfile:
+```
+mkdir configfiles
+while read line; do
+    echo "$line"
+    sed "s/SAMPLE/$line/g" config_example.yaml > configfiles/config_"$line".yaml
+done < todo_binning.txt 
+```
+
+Then, you can run the snakemake workflow for each configfile. Either do this in separate windows in tmux, or run it as a loop. This loop is sequential, but you could even get fancy and run something in parallel with xargs... Change the paths here to correspond to where you have the snakefile and configfiles. 
+```
+for c in configfiles/*.yaml; do
+    echo "starting $c"
+    snakemake --snakefile ~/projects/bhattlab_workflows/binning/bin_metabat.snakefile --configfile "$c" --use-singularity --singularity-args '--bind /labs/ --bind /scratch/' --profile scg --jobs 99 --rerun-incomplete
+done
+```
+
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
