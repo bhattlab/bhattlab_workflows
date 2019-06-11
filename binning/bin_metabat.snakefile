@@ -332,7 +332,7 @@ rule kraken2:
     resources:
         mem=256,
         time=1
-    threads: 8
+    threads: 2
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
         --output {output.krak} --report {output.krak_report} {input} 

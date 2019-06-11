@@ -4,7 +4,7 @@
 
 from os.path import join, abspath, expanduser
 
-localrules: bwa_index_setup
+localrules: bwa_index_setup, postprocess, label_bins
 
 # Read in sample and outdir from config file
 samp = config['sample']
@@ -55,15 +55,14 @@ rule all:
         reads,
         config['assembly'],
         config['kraken2db'],
-        # checkm
-        expand(join(outdir, "{samp}/metabat/checkm/checkm.tsv"), samp = config['sample']),
-        expand(join(outdir, "{samp}/maxbin/checkm/checkm.tsv"), samp = config['sample']),
-        expand(join(outdir, "{samp}/mycc/checkm/checkm.tsv"), samp = config['sample']),
+        # checkm - not necessary to run for all binners
+        # expand(join(outdir, "{samp}/metabat/checkm/checkm.tsv"), samp = config['sample']),
+        # expand(join(outdir, "{samp}/maxbin/checkm/checkm.tsv"), samp = config['sample']),
+        # expand(join(outdir, "{samp}/mycc/checkm/checkm.tsv"), samp = config['sample']),
         # Post-processing
         expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/final/{samp}_simple.tsv"), samp = config['sample']),
-        expand(join(outdir, "{samp}/final/bin_tig_mapping.tsv"), samp = config['sample']),
 
 ##########################################
 ####### Prepping input for binning #######
@@ -191,22 +190,20 @@ checkpoint maxbin:
         reads1 = reads[0],
         reads2 = reads[1]
     output:
-        #summary="{samp}/maxbin/maxbin.summary",
         directory(join(outdir, "{samp}/maxbin/bins"))
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     params:
         outfolder="{samp}/maxbin/"
     resources:
-        cores=16,
         time=lambda wildcards, attempt: attempt * 2
-    shell:
-        """
+    threads: 8
+    shell: """
         if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
         mkdir -p {params.outfolder}
         cd {params.outfolder}
         run_MaxBin.pl -contig {input.contigs} -out maxbin \
-        -reads {input.reads1} -reads2 {input.reads2} -thread {resources.cores}
+        -reads {input.reads1} -reads2 {input.reads2} -thread {threads}
         mkdir bins/
         mv *.fasta bins/
         """
@@ -214,21 +211,19 @@ checkpoint maxbin:
 # Run myCC binner
 checkpoint mycc:
     input:
-        contigs=config['assembly'],
+        contigs = join(outdir, "{samp}/idx/{samp}.fa"),
     output:
-        #join(outdir, "{samp}/mycc/Cluster.summary")
         directory(join(outdir, "{samp}/mycc/bins"))
     singularity:
         "docker://990210oliver/mycc.docker:v1"
     params:
-        outfolder=join(outdir, "{samp}/mycc")
+        outfolder = join(outdir, "{samp}/mycc"),
+        workdir = join(outdir, "{samp}")
     resources:
         time=lambda wildcards, attempt: attempt * 12
-    shell:
-        """
+    shell: """
         if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
-        #mkdir -p {params.outfolder}
-        cd {wildcards.samp}
+        cd {params.workdir}
         MyCC.py {input.contigs} -meta
         mv 20*/ {params.outfolder}/  # change variable folder name to mycc
         mkdir {params.outfolder}/bins/
@@ -241,28 +236,30 @@ checkpoint DAStool:
         lambda wildcards: expand(join(outdir, "{samp}/metabat/bins/{metabat_bin}.fa"), metabat_bin = get_metabat_bins(wildcards), samp = wildcards.samp),
         lambda wildcards: expand(join(outdir, "{samp}/maxbin/bins/{maxbin_bin}.fasta"), maxbin_bin = get_maxbin_bins(wildcards), samp = wildcards.samp),
         lambda wildcards: expand(join(outdir, "{samp}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), samp = wildcards.samp),
+        contigs = join(outdir, "{samp}/idx/{samp}.fa"),
     output:
         directory(join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins"))
     singularity:
         "shub://ambenj/bin_das_tool:dastool"
     params:
-        outfolder="{samp}/DAS_tool"
-    resources:
-        cores=8
-    shell:
-        """
-        if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
-        mkdir -p {params.outfolder}
-
+        outfolder = join(outdir, "{samp}/DAS_tool"),
+        outfolder_threemethods = join(outdir, "{samp}/DAS_tool/threemethods"),
+        metabat_dir = join(outdir, "{samp}/metabat/bins/"),
+        maxbin_dir = join(outdir, "{samp}/maxbin/bins/"),
+        mycc_dir = join(outdir, "{samp}/mycc/bins/"),
+        metabat_tsv = join(outdir, "{samp}/DAS_tool/metabat_scaffold2bin.tsv"),
+        maxbin_tsv = join(outdir, "{samp}/DAS_tool/maxbin_scaffold2bin.tsv"),
+        mycc_tsv = join(outdir, "{samp}/DAS_tool/mycc_scaffold2bin.tsv"),
+    threads: 8
+    shell: """
         # Prepare scaffold2bin file for each set of bins
-        Fasta_to_Scaffolds2Bin.sh -e fa -i {wildcards.samp}/metabat/bins/ > {wildcards.samp}/DAS_tool/metabat_scaffold2bin.tsv
-        Fasta_to_Scaffolds2Bin.sh -e fasta -i {wildcards.samp}/maxbin/bins > {wildcards.samp}/DAS_tool/maxbin_scaffold2bin.tsv
-        Fasta_to_Scaffolds2Bin.sh -e fasta -i {wildcards.samp}/mycc/bins > {wildcards.samp}/DAS_tool/mycc_scaffold2bin.tsv
-
-        DAS_Tool -i {wildcards.samp}/DAS_tool/metabat_scaffold2bin.tsv,{wildcards.samp}/DAS_tool/maxbin_scaffold2bin.tsv,{wildcards.samp}/DAS_tool/mycc_scaffold2bin.tsv \
-        -l metabat,maxbin,mycc -c {wildcards.samp}/idx/{wildcards.samp}.fa -o {wildcards.samp}/DAS_tool/threemethods \
-        --search_engine diamond --threads {resources.cores} --write_bins 1 --write_unbinned 1
-
+        Fasta_to_Scaffolds2Bin.sh -e fa -i {params.metabat_dir} > {params.metabat_tsv}
+        Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.maxbin_dir} > {params.maxbin_tsv}
+        Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.mycc_dir} > {params.mycc_tsv}
+        # Run DAS_Tool
+        DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.mycc_tsv} \
+        -l metabat,maxbin,mycc -c {input.contigs} -o {params.outfolder_threemethods} \
+        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
         """
 
 
@@ -401,7 +398,7 @@ rule quast:
     input:
         join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
     output:
-        join(outdir, "{samp}/quast/{bin}.fa/report.txt")
+        join(outdir, "{samp}/quast/{bin}.fa/report.tsv")
     log:
         join(outdir, "{samp}/logs/quast_{bin}.log")
     singularity:
@@ -539,7 +536,7 @@ rule kraken2:
     resources:
         mem=256,
         time=1
-    threads: 8
+    threads: 2
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
         --output {output.krak} --report {output.krak_report} {input}
