@@ -13,6 +13,7 @@ bash https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 Then, if you haven't already, set up a Snakemake profile for SCG by following the instructions [here](https://github.com/bhattlab/slurm). 
 Then clone this github repository to a place on scg. I keep a 'projects' folder in my home directory for cloning repos.
 ```
+# ON SCG
 cd ~/projects
 git clone git@github.com:bhattlab/bhattlab_workflows.git
 cd ~/projects/bhattlab_workflows
@@ -104,6 +105,13 @@ Steps of the workflow include:
 - Build MinHash sketches for each file
 - Compare each pair of signatures to get pairwise Jaccard distances
 - Downstream processing and plotting
+
+# Metagenomic binning
+Binning is essentially clustering for assembled contigs. Create draft metagenome-assembled genomes and evaluate their completeness, contamination and other metrics with these helpful tools!
+
+There are two binning workflows in the `binning` folder. `bin_metabat.snakefile` uses a single binning method ([metabat2](https://peerj.com/articles/1165/)), while `bin_das_tool.snakefile` uses several tools and integrates the result with [DASTool](https://www.nature.com/articles/s41564-018-0171-1). Both use the same downstream evaluation and reporting tools. The DASTool pipeline was made by [Alyssa Benjamin](https://github.com/ambenj).
+
+You can launch either workflow using singularity images with a command like 
 
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
