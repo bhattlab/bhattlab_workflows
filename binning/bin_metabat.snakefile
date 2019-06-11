@@ -44,10 +44,6 @@ rule bwa_index_setup:
         config['assembly']
     output:
         join(outdir, "{samp}/idx/{samp}.fa")
-    resources:
-        mem=1,
-        time=1
-    threads: 1
     shell: """
         cp {input} {output}
         """
@@ -66,8 +62,8 @@ rule bwa_index:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=8,
-        time=2
+        mem = 8,
+        time = 2
     threads: 1
     shell: """
         bwa index {input}
@@ -89,8 +85,8 @@ rule bwa_align:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=16,
-        time=12
+        mem = 16,
+        time = 12
     threads: 8
     shell: """
         bwa mem -t {threads} {input.asm}  {input.reads} |samtools sort --threads {threads} > {output}
@@ -107,8 +103,8 @@ rule align_lr:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=48,
-        time=6
+        mem = 48,
+        time = 6
     threads: 16
     shell: """
         minimap2 -t {threads} -ax map-ont {input} | samtools sort --threads {threads} > {output}
@@ -137,8 +133,8 @@ checkpoint metabat:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=64,
-        time=24
+        mem = 64,
+        time = 24
     threads: 4
     params:
         outstring = join(outdir, "{samp}/bins/bin")
@@ -156,8 +152,8 @@ rule checkm:
     singularity:
         "shub://bsiranosian/bin_genomes:checkm"
     resources:
-        mem=128,
-        time=24
+        mem = 128,
+        time = 24
     threads: 8
     params:
         binfolder = join(outdir, "{samp}/bins/"),
@@ -177,8 +173,8 @@ rule aragorn:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=8,
-        time=1
+        mem = 8,
+        time = 1
     shell:
         "aragorn -t {input} -o {output}"
 
@@ -192,8 +188,8 @@ rule barrnap:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=8,
-        time=1
+        mem = 8,
+        time = 1
     shell:
         "barrnap {input} > {output}"
 
@@ -207,8 +203,8 @@ rule quast:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=8,
-        time=1
+        mem = 8,
+        time = 1
     params:
         quastfolder = join(outdir, "{samp}/quast/{bin}.fa/"),
         thresholds = "0,10000,50000,100000,250000,500000,1000000,2000000,3000000"
@@ -226,8 +222,8 @@ rule prokka:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=48,
-        time=1,
+        mem = 48,
+        time = lambda wildcards, attempt: 4 * attempt,
     threads: 8
     params:
         prokkafolder = join(outdir, "{samp}/prokka/{bin}.fa"),
@@ -247,8 +243,8 @@ rule bam_idx:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=2,
-        time=2
+        mem = 2,
+        time = 2
     shell:
         "samtools index {input}"
 
@@ -263,8 +259,8 @@ rule bam_idxstats:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=2,
-        time=2
+        mem = 2,
+        time = 2
     shell:
         "samtools idxstats {input[0]} > {output}"
 
@@ -279,8 +275,8 @@ rule bin_idxstats:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=2,
-        time=1
+        mem = 2,
+        time = 1
     shell:
         "grep '>' {input[0]} | tr -d '>' | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}"
 
@@ -294,8 +290,8 @@ rule bin_coverage:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=2,
-        time=1
+        mem = 2,
+        time = 1
     params:
         read_length = config['read_length']
     script:
@@ -311,8 +307,8 @@ rule fasta_index:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
-        mem=8,
-        time=1
+        mem = 8,
+        time = 1
     threads: 1
     shell:
         "samtools faidx {input}"
@@ -330,8 +326,8 @@ rule kraken2:
     params: 
         db = config['kraken2db']
     resources:
-        mem=256,
-        time=1
+        mem = 256,
+        time = 1
     threads: 2
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
