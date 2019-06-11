@@ -33,7 +33,15 @@ import gzip
 import re
 import sys
 import shutil
+import functools
+import locale
+locale.setlocale(locale.LC_ALL, "C")
 
+# natural sort function from Mark Byers on Stack Overflow
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower() 
+    alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
+    return sorted(l, key = alphanum_key)
 
 def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphans):
     """
@@ -68,34 +76,75 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
         header = record[0].split(' ')[0].split('\t')[0]
         return header
 
-    headers = (x.strip().split(' ')[0] for i, x in enumerate(original) if not (i % 4))
+    headers = (x.strip().split(' ')[0].split('\t')[0] for i, x in enumerate(original) if not (i % 4))
 
     total_a = total_b = kept = orphaned_a = orphaned_b = 0
 
     a, b = next_record(reads_a), next_record(reads_b)
 
     for header in headers:
+        # print(header)
+        # print(head(a))
         # in the case of reads coming from SRA, pair information is in the 
         # header here and needs to be eliminated for syncing to work
+        ha = head(a)
+        hb = head(b)
+
         if re.match(srr_pattern, header):
             header_fixed = header[0:-2]
             header = header_fixed
+
+        # files need to be in read name sorted order for this to work. Check 
+        # if thats not the case here
+        l1 = [header,ha]
+        l2 = [header,hb]
+        l1_sorted = l1.copy()
+        l2_sorted = l2.copy()
+        l1_sorted.sort(key=functools.cmp_to_key(locale.strcoll))
+        l2_sorted.sort(key=functools.cmp_to_key(locale.strcoll))
+        if (ha != '' and l1_sorted[0] != header) or \
+                   (hb != '' and l2_sorted[0] != header):
+        # if (ha != '' and l1_natural[0] != header) or \
+        #            (hb != '' and l2_natural[0] != header):
+            l1_sorted2 = l1.copy()
+            l2_sorted2 = l2.copy()
+            l1_sorted2.sort()
+            l2_sorted2.sort()
+            l1_natural = natural_sort(l1)
+            l2_natural = natural_sort(l2)
+            print('Reads must be in read name sorted order. Please sort and re-run.')
+            print("Original reads: " + header)
+            print("Sync 1 reads:   " + ha)
+            print("Sync 2 reads:   " + hb)
+            print('Original')
+            print(l1)
+            print(l2)
+            print('default sorted')
+            print(l1_sorted)
+            print(l2_sorted)
+            print('default sorted no localle')
+            print(l1_sorted2)
+            print(l2_sorted2)
+            print('natural sorted')
+            print(l1_natural)
+            print(l2_natural)
+            raise ValueError
  
-        if header == head(a) and header != head(b):
+        if header == ha and header != hb:
             orphans.write(('\n'.join(a)+'\n'))
             # print('\n'.join(a), file=orphans)
             a = next_record(reads_a)
             orphaned_a += 1
             total_a += 1
 
-        if header == head(b) and header != head(a):
+        if header == hb and header != ha:
             orphans.write(('\n'.join(b)+'\n'))
             # print('\n'.join(b), file=orphans)
             b = next_record(reads_b)
             orphaned_b += 1
             total_b += 1
 
-        if header == head(a) == head(b):
+        if header == ha == hb:
             synced_a.write(('\n'.join(a)+'\n'))
             synced_b.write(('\n'.join(b)+'\n'))
             # print('\n'.join(a), file=synced_a)
@@ -109,6 +158,9 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
 
 
 def _open(filename, mode='r'):
+    # print(filename)
+    # print(type(filename))
+    # print(type(filename[0]))
     if filename.endswith('.gz'):
         # if mode.startswith('w'):
             # return gzip.open(filename, 'wb')

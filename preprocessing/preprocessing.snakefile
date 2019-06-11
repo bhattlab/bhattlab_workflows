@@ -7,6 +7,9 @@ DATA_DIR    = config["raw_reads_directory"]
 PROJECT_DIR = config["output_directory"]
 READ_SUFFIX = config["read_specification"]
 EXTENSION   = config["extension"]
+# if gzipped, set this. otherwise not
+gz_ext = '.gz' if EXTENSION.endswith('.gz') else ''
+print(gz_ext)
 
 # convert PROJECT_DIR to absolute path
 if PROJECT_DIR[0] == '~':
@@ -14,8 +17,8 @@ if PROJECT_DIR[0] == '~':
 PROJECT_DIR = abspath(PROJECT_DIR)
 
 # get file names
-FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(tuple(['fastq.gz', 'fq.gz']))]
-SAMPLE_PREFIX = list(set([re.split('_1.f|_2.f|_R1|_R2|_PE1|_PE2', i)[0] for i in FILES]))
+FILES = [f for f in os.listdir(DATA_DIR) if f.endswith(EXTENSION)]
+SAMPLE_PREFIX = list(set([re.split('|'.join(['_' + a + '\.' for a in READ_SUFFIX]), i)[0] for i in FILES]))
 
 ################################################################################
 localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
@@ -33,7 +36,7 @@ rule all:
 
 ################################################################################
 rule pre_fastqc:
-	input:  join(DATA_DIR, "{sample}_{read}") + EXTENSION
+	input:  join(DATA_DIR, "{sample}_{read}" + EXTENSION)
 	output: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html")
 	params:
 		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/")
@@ -41,6 +44,7 @@ rule pre_fastqc:
 	resources:
 			time = 1,
 			mem = 32
+	singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
 	shell: """
 		mkdir -p {params.outdir}
 		fastqc {input} --outdir {params.outdir}
@@ -53,6 +57,7 @@ rule pre_multiqc:
 	params:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/")
+	singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
 	shell: """
 		multiqc --force {params.indir} -o {params.outdir}
 	"""
@@ -60,71 +65,164 @@ rule pre_multiqc:
 ################################################################################
 rule trim_galore:
 	input:
-		fwd = join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION,
-		rev = join(DATA_DIR, "{sample}_") + READ_SUFFIX[1] + EXTENSION
+		fwd = join(DATA_DIR, "{sample}_" + READ_SUFFIX[0] + EXTENSION),
+		rev = join(DATA_DIR, "{sample}_" + READ_SUFFIX[1] + EXTENSION)
 	output:
-		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz",
-		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq.gz",
-		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq.gz")
+		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_val_1.fq" + gz_ext),
+		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[1] + "_val_2.fq" + gz_ext),
+		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired.fq" + gz_ext)
 	threads: 4
 	resources:
 		mem=32,
 		time=lambda wildcards, attempt: attempt * 6
 	params:
-		orp_fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_unpaired_1.fq.gz",
-		orp_rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_unpaired_2.fq.gz",
+		orp_fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_unpaired_1.fq" + gz_ext),
+		orp_rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[1] + "_unpaired_2.fq" + gz_ext),
+		# output_fwd_pre_gz = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq",
+		# output_rev_pre_gz = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq",
 		q_min   = config['trim_galore']['quality'],
 		left    = config['trim_galore']['start_trim'],
-		min_len = config['trim_galore']['min_read_length']
+		min_len = config['trim_galore']['min_read_length'],
+		outdir  = join(PROJECT_DIR, "01_processing/01_trimmed/"),
+		gz_output = str(gz_ext == '.gz').lower()
+	singularity: "docker://quay.io/biocontainers/trim-galore:0.5.0--0"
 	shell: """
-		mkdir -p {PROJECT_DIR}/01_processing/01_trimmed/
+		mkdir -p {params.outdir}
 		trim_galore --quality {params.q_min} \
 			--clip_R1 {params.left} --clip_R2 {params.left} \
 			--length {params.min_len} \
 			--output_dir {PROJECT_DIR}/01_processing/01_trimmed/ \
 			--paired {input.fwd} {input.rev} \
 			--retain_unpaired
-		# merge unpaired reads - delete intermediate files
-		zcat -f {params.orp_fwd} {params.orp_rev} | gzip >> {output.orp}
+
+		# if output is gz, merge unpaired and gzip
+		if {params.gz_output}; then
+			zcat -f {params.orp_fwd} {params.orp_rev} | pigz -p {threads} > {output.orp}
+		else
+			zcat -f {params.orp_fwd} {params.orp_rev} > {output.orp}
+		fi
+		# delete intermediate files
 		rm {params.orp_fwd} {params.orp_rev}
 	"""
 
-################################################################################
-rule dereplicate:
+rule sort_trimmed_fwd:
 	input:
 		fwd = rules.trim_galore.output.fwd,
+	output:
+		fwd = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_val_1_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.fwd} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.fwd} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.fwd}
+	"""
+
+rule sort_trimmed_rev:
+	input:
 		rev = rules.trim_galore.output.rev,
+	output:
+		rev = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[1] + "_val_2_sorted.fq.gz"),
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.rev} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.rev} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.rev}
+	"""
+
+rule sort_trimmed_orp:
+	input:
 		orp = rules.trim_galore.output.orp
 	output:
+		orp = join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_unpaired_sorted.fq.gz")
+	resources:
+		mem=64,
+		time=lambda wildcards, attempt: attempt * 6
+	shell: """
+		export LC_ALL=C 
+		zcat -f {input.orp} | paste - - - - | sort -k1,1 | tr "\t" "\n" | gzip > {output.orp} || test $? -eq 141	
+		
+		# remove old unsorted input
+		# rm {input.orp}
+	"""
+
+
+################################################################################
+rule dereplicate_fwd:
+	input:
+		fwd = rules.sort_trimmed_fwd.output,
+	output:
 		fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
-		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
-		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
+	params:
+		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
+		details_fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_1_details.txt"),
 	threads: 2
 	resources:
 		mem=32,
 		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
 	shell: """
-		mkdir -p {PROJECT_DIR}/01_processing/02_dereplicate/
-		seqkit rmdup --by-seq {input.fwd} > {output.fwd} \
-			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_1_details.txt
-		seqkit rmdup --by-seq {input.rev} > {output.rev} \
-			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_2_details.txt
-		seqkit rmdup --by-seq {input.orp} > {output.orp} \
-			-D {PROJECT_DIR}/01_processing/02_dereplicate/{wildcards.sample}_unpaired_details.txt
+		mkdir -p {params.outdir}
+		seqkit rmdup --by-seq {input.fwd} -D {params.details_fwd} > {output.fwd}
 	"""
+
+rule dereplicate_rev:
+	input:
+		rev = rules.sort_trimmed_rev.output,
+	output:
+		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
+	params:
+		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
+		details_rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_2_details.txt"),
+	threads: 2
+	resources:
+		mem=32,
+		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
+	shell: """
+		mkdir -p {params.outdir}
+		seqkit rmdup --by-seq {input.rev} -D {params.details_rev} > {output.rev}
+	"""
+
+rule dereplicate_orp:
+	input:
+		orp = rules.sort_trimmed_orp.output
+	output:
+		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
+	params:
+		outdir = join(PROJECT_DIR, "01_processing/02_dereplicate/"),
+		details_orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_unpaired_details.txt")
+	threads: 2
+	resources:
+		mem=32,
+		time=24
+	singularity: "docker://quay.io/biocontainers/seqkit:0.10.1--1"
+	shell: """
+		mkdir -p {params.outdir}
+		seqkit rmdup --by-seq {input.orp} -D {params.details_orp} > {output.orp}
+	"""
+
 ################################################################################
 rule sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
-		fwd = rules.dereplicate.output.fwd,
-		rev = rules.dereplicate.output.rev
+		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
+		fwd = rules.dereplicate_fwd.output.fwd,
+		rev = rules.dereplicate_rev.output.rev,
+		orp = rules.dereplicate_orp.output.orp
 	output:
 		fwd = join(PROJECT_DIR, "01_processing/03_sync/{sample}_1.fq"),
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
-	resources: 
+	resources:
 		time=12
-	script: 
+	script:
 		"scripts/sync.py"
 
 ################################################################################
@@ -142,6 +240,7 @@ rule rm_host_reads:
 	resources:
 		mem=32,
 		time=24
+	singularity: "shub://bhattlab/bhattlab_workflows:align"
 	shell: """
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
 		# if an index needs to be built, use bwa index ref.fa
@@ -155,7 +254,7 @@ rule rm_host_reads:
 ################################################################################
 rule rm_host_sync:
 	input:
-		rep_fwd  = rules.trim_galore.output.fwd,
+		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
 		fwd = rules.rm_host_reads.output.unmapped_1,
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp
@@ -166,7 +265,7 @@ rule rm_host_sync:
 	threads: 1
 	resources:
 		time = 12
-	script: 
+	script:
 		"scripts/sync.py"
 	# shell:
 	# 	" mkdir -p {PROJECT_DIR}/01_processing/05_sync/ " \
@@ -202,9 +301,15 @@ rule post_fastqc:
 	resources:
 			time = 6,
 			mem = 32
+	singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
 	shell: """
 		mkdir -p {params.outdir}
-		fastqc {input} -f fastq --outdir {params.outdir}
+		if [ -z $(gzip -cd {input} | head -c1) ]; then
+			echo EMPTY!
+			touch {output}
+		else
+			fastqc {input} -f fastq --outdir {params.outdir}
+		fi
 	"""
 
 rule post_multiqc:
@@ -213,6 +318,7 @@ rule post_multiqc:
 	params:
 		indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc"),
 		outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/")
+	singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
 	shell: """
 		multiqc --force {params.indir} -o {params.outdir}
 	"""
@@ -261,8 +367,8 @@ def file_len(fname):
 
 rule readcounts:
 	input:
-		raw = expand(join(DATA_DIR, "{sample}_") + READ_SUFFIX[0] + EXTENSION, sample=SAMPLE_PREFIX),
-		trimmed = expand(join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq.gz", sample=SAMPLE_PREFIX),
+		raw = expand(join(DATA_DIR, "{sample}_" + READ_SUFFIX[0] + EXTENSION), sample=SAMPLE_PREFIX),
+		trimmed = expand(join(PROJECT_DIR, "01_processing/01_trimmed/{sample}_" + READ_SUFFIX[0] + "_val_1.fq" + gz_ext), sample=SAMPLE_PREFIX),
 		dedup = expand(join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq"), sample=SAMPLE_PREFIX),
 		rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"), sample=SAMPLE_PREFIX),
 		orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
@@ -277,8 +383,8 @@ rule readcounts:
 		with open(outfile, 'w') as outf:
 			outf.writelines('Sample\traw_reads\ttrimmed_reads\ttrimmed_frac\tdeduplicated_reads\tdeduplicated_frac\thost_removed_reads\thost_removed_frac\torphan_reads\torphan_frac\n')
 			for sample in SAMPLE_PREFIX:
-				raw_file = join(DATA_DIR, sample + "_") + READ_SUFFIX[0] + EXTENSION
-				trimmed_file = join(PROJECT_DIR, "01_processing/01_trimmed/" + sample + "_") + READ_SUFFIX[0] + "_val_1.fq.gz"
+				raw_file = join(DATA_DIR, sample + "_" + READ_SUFFIX[0] + EXTENSION)
+				trimmed_file = join(PROJECT_DIR, "01_processing/01_trimmed/" + sample + "_" + READ_SUFFIX[0] + "_val_1.fq" + gz_ext)
 				dedup_file = join(PROJECT_DIR, "01_processing/03_sync/" + sample + "_1.fq")
 				rmhost_file = join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_1.fq")
 				orphans_file = join(PROJECT_DIR, "01_processing/05_sync/" + sample + "_orphans.fq")
@@ -306,6 +412,7 @@ rule readcounts_graph:
 		rules.readcounts.output
 	output:
 		join(PROJECT_DIR, "01_processing/readcounts.pdf")
+	singularity: "shub://bhattlab/bhattlab_workflows:plotting"
 	script:
 		"scripts/plot_readcounts.R"
 
