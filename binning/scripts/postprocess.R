@@ -20,12 +20,17 @@ names(rrna.files) <- bins
 names(coverage.files) <- bins
 
 # process prokka
+# but skip the unbinned bin
 bin.gene.count <- c()
 for (b in bins){
-  f <- prokka.files[b]
-  fl <- readLines(f)
-  gene.count <- length(grep('CDS', fl, value = T))
-  bin.gene.count[b] <- gene.count
+  if (b %in% c('bin.unbinned', 'bin.unbinned.contigs')){
+    bin.gene.count[b] <- NA
+  } else {
+    f <- prokka.files[b]
+    fl <- readLines(f)
+    gene.count <- length(grep('CDS', fl, value = T))
+    bin.gene.count[b] <- gene.count
+  }
 }
 
 # process quast

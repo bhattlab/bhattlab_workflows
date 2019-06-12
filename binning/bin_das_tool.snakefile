@@ -431,8 +431,14 @@ rule prokka:
         prokkafolder = join(outdir, "{samp}/prokka/{bin}.fa"),
         prefix = "{samp}_{bin}.fa"
     shell: """
-        prokka {input} --outdir {params.prokkafolder} --prefix {params.prefix} \
-        --centre X --compliant --force --cpus {threads} --noanno
+        # don't run this on unbinned contigs, takes forever
+        if [ {wildcards.bin} = "bin.unbinned.contigs" ]; then
+            touch {output}
+            touch {params.prokkafolder}/prokka_skipped.out
+        else
+            prokka {input} --outdir {params.prokkafolder} --prefix {params.prefix} \
+            --centre X --compliant --force --cpus {threads} --noanno
+        fi
         """
 
 # Index bam file to prepare for bamidx
