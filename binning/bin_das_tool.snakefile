@@ -220,7 +220,8 @@ checkpoint mycc:
         outfolder = join(outdir, "{samp}/mycc"),
         workdir = join(outdir, "{samp}")
     resources:
-        time=lambda wildcards, attempt: attempt * 12
+        time=lambda wildcards, attempt: attempt * 12,
+        mem=lambda wildcards, attempt: attempt * 128
     shell: """
         if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
         cd {params.workdir}
@@ -251,6 +252,8 @@ checkpoint DAStool:
         maxbin_tsv = join(outdir, "{samp}/DAS_tool/maxbin_scaffold2bin.tsv"),
         mycc_tsv = join(outdir, "{samp}/DAS_tool/mycc_scaffold2bin.tsv"),
     threads: 8
+    resources:
+        time=lambda wildcards, attempt: attempt * 6
     shell: """
         # Prepare scaffold2bin file for each set of bins
         Fasta_to_Scaffolds2Bin.sh -e fa -i {params.metabat_dir} > {params.metabat_tsv}
@@ -487,7 +490,7 @@ rule bin_idxstats:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
         mem = 2,
-        time = 1
+        time = 6
     shell:
         "grep '>' {input[0]} | tr -d '>' | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}"
 
@@ -541,8 +544,8 @@ rule kraken2:
         db = config['kraken2db']
     resources:
         mem = 256,
-        time = 1
-    threads: 2
+        time = 6
+    threads: 4
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
         --output {output.krak} --report {output.krak_report} {input}

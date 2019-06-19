@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from os.path import join, abspath, expanduser
 
-localrules: bwa_index_setup, postprocess, label_bins, bin_tig_mapping, metabat, fasta_index
+localrules: bwa_index_setup, postprocess, label_bins, metabat, fasta_index
 
 samp = config['sample']
 outdir = config['outdir_base']
@@ -281,7 +281,7 @@ rule bin_idxstats:
         "shub://bsiranosian/bin_genomes:binning"
     resources:
         mem = 2,
-        time = 1
+        time = 6
     shell:
         "grep '>' {input[0]} | tr -d '>' | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}"
 
@@ -332,8 +332,8 @@ rule kraken2:
         db = config['kraken2db']
     resources:
         mem = 256,
-        time = 1
-    threads: 2
+        time = 6
+    threads: 4
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
         --output {output.krak} --report {output.krak_report} {input} 

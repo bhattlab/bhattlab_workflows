@@ -158,7 +158,7 @@ Then, you can run the snakemake workflow for each configfile. Either do this in 
 ```
 for c in configfiles/*.yaml; do
     echo "starting $c"
-    snakemake --snakefile ~/projects/bhattlab_workflows/binning/bin_metabat.snakefile --configfile "$c" --use-singularity --singularity-args '--bind /labs/ --bind /scratch/' --profile scg --jobs 99 --rerun-incomplete
+    snakemake --snakefile ~/projects/bhattlab_workflows/binning/bin_das_tool.snakefile --configfile "$c" --use-singularity --singularity-args '--bind /labs/ --bind /scratch/' --profile scg --jobs 99 --rerun-incomplete
 done
 ```
 
