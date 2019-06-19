@@ -4,3 +4,5 @@
 .snakemake*
 *.swp
 .fuse*
+nohup.out
+
