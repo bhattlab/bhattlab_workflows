@@ -69,11 +69,14 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b, orphan
     def next_record(fh):
         a = [fh.readline().strip() for i in range(4)]
         if re.match(srr_pattern, a[0]):
-            a[0] = a[0].split(' ')[0][0:-2]
+            a[0] = a[0].split(' ')[0].split('\t')[0][0:-2]
         return a
 
     def head(record):
         header = record[0].split(' ')[0].split('\t')[0]
+        if re.match(srr_pattern, header):
+            header_fixed = header[0:-2]
+            header = header_fixed
         return header
 
     headers = (x.strip().split(' ')[0].split('\t')[0] for i, x in enumerate(original) if not (i % 4))
