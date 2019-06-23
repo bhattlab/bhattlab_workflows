@@ -162,5 +162,13 @@ for c in configfiles/*.yaml; do
 done
 ```
 
+# Dumping reads from SRA 
+Given a SRR ID number, this will download reads from SRA, using many threads in parallel to speed up the process. Specify the SRR ID number on the command line (replacing SRRXXXXX) . Reads are downloaded into a new folder in your current working directory. 
+```
+snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
+--config srr=SRRXXXXX \
+--use-singularity --profile scg --jobs 1
+```
+
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
