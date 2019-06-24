@@ -25,10 +25,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
@@ -212,7 +212,6 @@ rule dereplicate_orp:
 ################################################################################
 rule sync:
 	input:
-		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
 		fwd = rules.dereplicate_fwd.output.fwd,
 		rev = rules.dereplicate_rev.output.rev,
 		orp = rules.dereplicate_orp.output.orp
@@ -221,9 +220,21 @@ rule sync:
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
 	resources:
-		time=12
-	script:
-		"scripts/sync.py"
+		time = lambda wildcards, attempt: 12 * attempt
+	params:
+		outfile_paired_1 = rules.dereplicate_fwd.output.fwd + ".paired.fq",
+		outfile_single_1 = rules.dereplicate_fwd.output.fwd + ".single.fq",
+		outfile_paired_2 = rules.dereplicate_rev.output.rev + ".paired.fq",
+		outfile_single_2 = rules.dereplicate_rev.output.rev + ".single.fq",
+	singularity: "shub://bsiranosian/bens_1337_workflows:fastq-pair"
+	shell: """
+		fastq_pair {input.fwd} {input.rev}
+		# move files to expected locations
+		mv {params.outfile_paired_1} {output.fwd}
+		mv {params.outfile_paired_2} {output.rev}
+		cat {input.orp} {params.outfile_single_1} {params.outfile_single_2} > {output.orp}
+		rm {params.outfile_single_1} {params.outfile_single_2}
+		"""
 
 ################################################################################
 rule rm_host_reads:
@@ -254,43 +265,52 @@ rule rm_host_reads:
 ################################################################################
 rule rm_host_sync:
 	input:
-		rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
+		# rep_fwd  = rules.sort_trimmed_fwd.output.fwd,
 		fwd = rules.rm_host_reads.output.unmapped_1,
 		rev = rules.rm_host_reads.output.unmapped_2,
 		orp = rules.rm_host_reads.output.unmapped_orp
 	output:
+		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
+		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
+		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
+	threads: 1	
+	resources:
+		time = 6
+	params:
+		outfile_paired_1 = rules.rm_host_reads.output.unmapped_1 + ".paired.fq",
+		outfile_single_1 = rules.rm_host_reads.output.unmapped_1 + ".single.fq",
+		outfile_paired_2 = rules.rm_host_reads.output.unmapped_2 + ".paired.fq",
+		outfile_single_2 = rules.rm_host_reads.output.unmapped_2 + ".single.fq",
+	singularity: "shub://bsiranosian/bens_1337_workflows:fastq-pair"
+	shell: """
+		fastq_pair {input.fwd} {input.rev}
+		# move files to expected locations
+		mv {params.outfile_paired_1} {output.fwd}
+		mv {params.outfile_paired_2} {output.rev}
+		cat {input.orp} {params.outfile_single_1} {params.outfile_single_2} > {output.orp}
+		rm {params.outfile_single_1} {params.outfile_single_2}
+		"""
+
+###############################################################################
+rule zip:
+	input: 
+		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq"),
+		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq"),
+		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq"),
+	output:
 		fwd = join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"),
 		rev = join(PROJECT_DIR, "01_processing/05_sync/{sample}_2.fq.gz"),
-		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz")
-	threads: 1
+		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"),
+	threads: 8
 	resources:
-		time = 12
-	script:
-		"scripts/sync.py"
-	# shell:
-	# 	" mkdir -p {PROJECT_DIR}/01_processing/05_sync/ " \
-	# 	"{params.scripts_folder}/sync.py {input.rep_fwd} {input.fwd} {input.rev} " \
-	# 	"{PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_1.fq " \
-	# 	"{PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_2.fq {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq " \
-	# 	"# concatenate the orphans reads after host removal with the orphan reads from syncing prior to host removal " \
-	# 	"cat {input.orp} >> {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq " \
-	# 	"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_1.fq " \
-	# 	"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_2.fq " \
-	# 	"pigz -8 {PROJECT_DIR}/01_processing/05_sync/{wildcards.sample}_orphans.fq"
-
-################################################################################
-# rule zip:
-# 	input: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq")
-# 	output: join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
-# 	params:
-# 		scripts_folder = config["scripts_dir"]
-# 	threads: 8
-# 	resources:
-# 		time = 1,
-# 		mem = 8
-# 	shell:
-# 		"pigz -8 {input}"
-
+		time = 1,
+		mem = 32
+	shell: """
+		pigz -p 8 {input.fwd}
+		pigz -p 8 {input.rev}
+		pigz -p 8 {input.orp}
+		# rm {input}
+		"""
 ################################################################################
 rule post_fastqc:
 	input:  join(PROJECT_DIR, "01_processing/05_sync/{sample}_{read}.fq.gz")
