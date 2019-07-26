@@ -110,14 +110,11 @@ rule align_lr:
         minimap2 -t {threads} -ax map-ont {input} | samtools sort --threads {threads} > {output}
         """
 
-
-
 rule metabat_pre:
     input:
         join(outdir, "{samp}/{samp}_lr.bam") if long_read else join(outdir, "{samp}/{samp}.bam") #choose a long read alignment or short read alignment
     output:
         single = join(outdir, "{samp}/{samp}.fa.depth.txt"),
-        paired = join(outdir, "{samp}/{samp}.fa.paired.txt"),
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     shell: """
