@@ -59,7 +59,11 @@ for (b in bins){
   f <- trna.files[b]
   fl <- readLines(f)
   total.string <- grep('Total', fl, value = T)
-  total.number <- as.numeric(tail(strsplit(total.string, split=' ')[[1]],1))
+  if (length(total.string) >0){
+    total.number <- as.numeric(tail(strsplit(total.string, split=' ')[[1]],1))
+  } else {
+    total.number <- 0
+  }
   bin.trna.count[b] <- total.number
 }
 

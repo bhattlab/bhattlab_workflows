@@ -60,7 +60,7 @@ rule bwa_index:
     log:
         join(outdir, "{samp}/logs/bwa_index.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 8,
         time = 2
@@ -83,7 +83,7 @@ rule bwa_align:
     log:
         join(outdir, "{samp}/logs/bwa_mem.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 16,
         time = 12
@@ -101,7 +101,7 @@ rule align_lr:
     output:
         join(outdir, "{samp}/{samp}_lr.bam")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 48,
         time = 6
@@ -119,7 +119,7 @@ rule metabat_pre:
         single = join(outdir, "{samp}/{samp}.fa.depth.txt"),
         paired = join(outdir, "{samp}/{samp}.fa.paired.txt"),
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     shell: """
         jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {output.paired} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
         """
@@ -131,7 +131,7 @@ checkpoint metabat:
     output:
         directory(join(outdir, "{samp}/bins/")) #the number of bins is unknown prior to execution
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 64,
         time = 24
@@ -149,8 +149,8 @@ rule checkm:
         join(outdir, "{samp}/checkm/checkm.tsv")
     log:
         join(outdir, "{samp}/logs/checkm.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:checkm"
+    #singularity:
+    #    "shub://bsiranosian/bin_genomes:checkm"
     resources:
         mem = 128,
         time = 24
@@ -171,7 +171,7 @@ rule aragorn:
     log:
         join(outdir, "{samp}/logs/aragorn_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 8,
         time = 1
@@ -186,7 +186,7 @@ rule barrnap:
     log:
         join(outdir, "{samp}/logs/barrnap_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 8,
         time = 1
@@ -201,7 +201,7 @@ rule quast:
     log:
         join(outdir, "{samp}/logs/quast_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 8,
         time = 1
@@ -219,12 +219,12 @@ rule prokka:
         join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff")
     log:
         join(outdir, "{samp}/logs/prokka_{bin}.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    #singularity:
+    #    "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 48,
         time = lambda wildcards, attempt: 4 * attempt,
-    threads: 8
+    threads: 1
     params:
         prokkafolder = join(outdir, "{samp}/prokka/{bin}.fa"),
         prefix = "{samp}_{bin}.fa"
@@ -234,8 +234,8 @@ rule prokka:
             touch {output}
             touch {params.prokkafolder}/prokka_skipped.out
         else
-            prokka {input} --outdir {params.prokkafolder} --prefix {params.prefix} \
-            --centre X --compliant --force --cpus {threads} --noanno
+            prokka {input} --outdir {params.prokkafolder} --prefix {params.prefix} --centre X --compliant --force --cpus {threads} --noanno
+        fi
         """
 
 rule bam_idx:
@@ -246,7 +246,7 @@ rule bam_idx:
     log:
         join(outdir, "{samp}/logs/bamidx.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 2,
         time = 2
@@ -262,7 +262,7 @@ rule bam_idxstats:
     log:
         join(outdir, "{samp}/logs/bamidxstats.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 2,
         time = 2
@@ -278,7 +278,7 @@ rule bin_idxstats:
     log:
         join(outdir, "{samp}/logs/coverage_idxstats_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 2,
         time = 6
@@ -293,7 +293,7 @@ rule bin_coverage:
     log:
         join(outdir, "{samp}/logs/coverage_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 2,
         time = 1
@@ -310,7 +310,7 @@ rule fasta_index:
     log:
         join(outdir, "{samp}/logs/faidx_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
         mem = 8,
         time = 1
@@ -327,7 +327,7 @@ rule kraken2:
     log:
         join(outdir, "{samp}/logs/kraken_class.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     params: 
         db = config['kraken2db']
     resources:
@@ -349,7 +349,7 @@ rule label_bins:
     log:
         join(outdir, "{samp}/logs/assign_species.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:binning"
     params: 
         binfolder = join(outdir, "{samp}/bins/"),
         custom_taxonomy = custom_taxonomy
@@ -379,7 +379,7 @@ rule postprocess:
 #     output:
 #         join(outdir, "{samp}/final/bin_tig_mapping.tsv")
 #     singularity:
-#         "shub://bsiranosian/bin_genomes:binning"
+#         "shub://bsiranosian/bens_1337_workflows:binning"
 #     shell:
 #         "ls {samp}/bins/ | grep fai  | xargs -n 1 -I foo sh -c \"cat {samp}/bins/foo | sed 's/^/foo\t/g' \" | sed 's/.fa.fai//g' | cut -f1,2 > {output}"
 
