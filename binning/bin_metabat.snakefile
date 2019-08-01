@@ -110,18 +110,17 @@ rule align_lr:
         minimap2 -t {threads} -ax map-ont {input} | samtools sort --threads {threads} > {output}
         """
 
-
-
 rule metabat_pre:
     input:
         join(outdir, "{samp}/{samp}_lr.bam") if long_read else join(outdir, "{samp}/{samp}.bam") #choose a long read alignment or short read alignment
     output:
-        single = join(outdir, "{samp}/{samp}.fa.depth.txt"),
-        paired = join(outdir, "{samp}/{samp}.fa.paired.txt"),
+        single = join(outdir, "{samp}/{samp}.fa.depth.txt")
+    params:
+        paired_out = join(outdir, "{samp}/{samp}.fa.paired.txt")
     singularity:
         "shub://bsiranosian/bens_1337_workflows:binning"
     shell: """
-        jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {output.paired} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
+        jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {params.paired_out} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
         """
 
 checkpoint metabat:
