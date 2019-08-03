@@ -91,7 +91,9 @@ rule spades:
         elif len(reads) == 1: #single-ended
             cmd = "spades.py --meta -12 {reads[0]}"
         cmd += " -o {params.outdir} -m {resources.mem} -t {threads}"
+        # cmd += " -o {params.outdir} -m {resources.mem} -t {threads} --only-assembler"
         shell(cmd)
+# add in --only-assembler if spades gets stuck on read error correction
 
 rule quast_spades:
     input:

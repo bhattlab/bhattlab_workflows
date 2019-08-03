@@ -1,3 +1,3 @@
-assemblers: ["spades", 'megahit']
-output_directory: /path/to/output
+assemblers: ["spades"] #can also run megahit if you specify it in this list
+output_directory: assembly
 sample_table: preprocessing/01_processing/assembly_input.txt

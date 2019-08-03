@@ -25,10 +25,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		# join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
@@ -157,7 +157,7 @@ rule sort_trimmed_orp:
 ################################################################################
 rule dereplicate_fwd:
 	input:
-		fwd = rules.sort_trimmed_fwd.output,
+		fwd = rules.trim_galore.output.fwd,
 	output:
 		fwd = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE1.fastq"),
 	params:
@@ -175,7 +175,7 @@ rule dereplicate_fwd:
 
 rule dereplicate_rev:
 	input:
-		rev = rules.sort_trimmed_rev.output,
+		rev = rules.trim_galore.output.rev,
 	output:
 		rev = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_PE2.fastq"),
 	params:
@@ -193,7 +193,7 @@ rule dereplicate_rev:
 
 rule dereplicate_orp:
 	input:
-		orp = rules.sort_trimmed_orp.output
+		orp = rules.trim_galore.output.orp
 	output:
 		orp = join(PROJECT_DIR, "01_processing/02_dereplicate/{sample}_nodup_unpaired.fastq")
 	params:

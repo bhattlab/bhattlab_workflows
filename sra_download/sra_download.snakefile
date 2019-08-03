@@ -24,7 +24,7 @@ rule dump:
     shell: """
     rm -f {output}
     parallel-fastq-dump --threads {threads} --outdir {config[srr]} --sra-id {config[srr]} \
-    --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip 
+    --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip --readids
     touch {output}
     """
 
