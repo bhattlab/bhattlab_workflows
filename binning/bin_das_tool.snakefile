@@ -4,7 +4,7 @@
 
 from os.path import join, abspath, expanduser
 
-localrules: bwa_index_setup, postprocess, label_bins
+localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool
 
 # Read in sample and outdir from config file
 samp = config['sample']
@@ -47,7 +47,8 @@ def get_mycc_bins(wildcards):
     return glob_wildcards(os.path.join(outputs, "{mycc_bin}.fasta")).mycc_bin
 
 def get_DAStool_bins(wildcards):
-    outputs = checkpoints.DAStool.get(**wildcards).output[0]
+    outputs = checkpoints.extract_DAStool.get(**wildcards).output[0]
+    # print(glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin)
     return glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin
 
 rule all:
@@ -232,14 +233,14 @@ checkpoint mycc:
         """
 
 # Aggregate binning results using DAStool
-checkpoint DAStool:
+rule DAStool:
     input:
         lambda wildcards: expand(join(outdir, "{samp}/metabat/bins/{metabat_bin}.fa"), metabat_bin = get_metabat_bins(wildcards), samp = wildcards.samp),
         lambda wildcards: expand(join(outdir, "{samp}/maxbin/bins/{maxbin_bin}.fasta"), maxbin_bin = get_maxbin_bins(wildcards), samp = wildcards.samp),
         lambda wildcards: expand(join(outdir, "{samp}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), samp = wildcards.samp),
         contigs = join(outdir, "{samp}/idx/{samp}.fa"),
-    output:
-        directory(join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins"))
+    output: 
+        join(outdir, "{samp}/DAS_tool/completed.txt")
     singularity:
         "shub://ambenj/bin_das_tool:dastool"
     params:
@@ -263,7 +264,21 @@ checkpoint DAStool:
         DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.mycc_tsv} \
         -l metabat,maxbin,mycc -c {input.contigs} -o {params.outfolder_threemethods} \
         --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
+        touch {output}
         """
+
+# extract the bins as a separate rule to speed up execution
+checkpoint extract_DAStool:
+    input: rules.DAStool.output
+    output:
+        directory(join(outdir, "{samp}/DAS_tool_bins"))
+    params:
+        old_binfolder = join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins"),
+        new_binfolder = join(outdir, "{samp}/DAS_tool_bins"),
+    shell: """
+        mkdir -p {params.new_binfolder}
+        cp {params.old_binfolder}/*.fa {params.new_binfolder}
+    """
 
 
 #####################################################
@@ -338,7 +353,7 @@ rule checkm_mycc:
 # checkm for DAStool output
 rule checkm_DAStool:
     input:
-        lambda wildcards: expand(join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp)
+        lambda wildcards: expand(join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp)
     output:
         join(outdir, "{samp}/DAS_tool/checkm/checkm.tsv")
     log:
@@ -350,7 +365,7 @@ rule checkm_DAStool:
         time = 12
     threads: 4
     params:
-        binfolder = join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins"),
+        binfolder = join(outdir, "{samp}/DAS_tool_bins"),
         checkmfolder = join(outdir, "{samp}/DAS_tool/checkm/"),
         bin_ex = ".fa"
     shell: """
@@ -365,7 +380,7 @@ rule checkm_DAStool:
 # Use aragorn to detect tRNA and tmRNA genes
 rule aragorn:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/rna/trna/{bin}.fa.txt")
     log:
@@ -382,7 +397,7 @@ rule aragorn:
 # Use barrnap to predict ribosomal RNA
 rule barrnap:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/rna/rrna/{bin}.fa.txt")
     log:
@@ -399,7 +414,7 @@ rule barrnap:
 # Use quast to evaluate genome assemblies
 rule quast:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/quast/{bin}.fa/report.tsv")
     log:
@@ -416,16 +431,26 @@ rule quast:
         quast.py -o {params.quastfolder} {input} --contig-thresholds {params.thresholds} --fast
         """
 
+rule pull_prokka:
+    input: config['assembly'],
+    output: join(outdir, "{samp}/prokka/pulled.txt") 
+    singularity:
+        "shub://bsiranosian/bens_1337_workflows:prokka"
+    shell: """
+        touch {output}
+    """
+
 # Use prokka to annotate metagenomes
 rule prokka:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"),
+        rules.pull_prokka.output
     output:
         join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff")
     log:
         join(outdir, "{samp}/logs/prokka_{bin}.log")
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "shub://bsiranosian/bens_1337_workflows:prokka"
     resources:
         mem = 48,
         time = lambda wildcards, attempt: 4 * attempt,
@@ -480,7 +505,7 @@ rule bam_idxstats:
 # Get mapping stats for each bin
 rule bin_idxstats:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa"),
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"),
         join(outdir, "{samp}/{samp}_lr.bam.bai.tsv") if long_read else join(outdir, "{samp}/{samp}.bam.bai.tsv"), #choose a long read alignment or short read alignment,
     output:
         join(outdir, "{samp}/coverage/raw/{bin}.tsv")
@@ -515,9 +540,9 @@ rule bin_coverage:
 # index DAStool bins
 rule fasta_index:
     input:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
     output:
-        join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa.fai")
+        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa.fai")
     log:
         join(outdir, "{samp}/logs/faidx_{bin}.log")
     singularity:
@@ -554,7 +579,7 @@ rule kraken2:
 rule label_bins:
     input:
         krak = join(outdir, "{samp}/classify/{samp}.krak"),
-        bins = lambda wildcards: expand(join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/{bin}.fa.fai"),
+        bins = lambda wildcards: expand(join(outdir, "{samp}/DAS_tool_bins/{bin}.fa.fai"),
                                         bin = get_DAStool_bins(wildcards), samp = wildcards.samp)
     output:
         join(outdir, "{samp}/classify/bin_species_calls.tsv")
@@ -563,7 +588,7 @@ rule label_bins:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     params:
-        binfolder = join(outdir, "{samp}/DAS_tool/threemethods_DASTool_bins/"),
+        binfolder = join(outdir, "{samp}/DAS_tool_bins/"),
         custom_taxonomy = custom_taxonomy
     script:
         "scripts/assign_species.py"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from os.path import join, abspath, expanduser
 
-localrules: bwa_index_setup, postprocess, label_bins, metabat, fasta_index
+localrules: bwa_index_setup, postprocess, label_bins, fasta_index, concoct_extract_bins
 
 samp = config['sample']
 outdir = config['outdir_base']
@@ -27,14 +27,19 @@ else:
     long_read = False
 
 def get_bins(wildcards):
-    outputs = checkpoints.metabat.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin
+    outputs = checkpoints.concoct_extract_bins.get(**wildcards).output[0]
+    # print("GET BINS")
+    # print(outputs)
+    # print(glob_wildcards(join(outputs, "{bin}.fa")).bin)
+    return(glob_wildcards(join(outputs, "{bin}.fa")).bin)
 
 rule all:
     input:
         reads,
         config['assembly'],
         config['kraken2db'],
+        # expand(join(outdir, "{samp}/prokka/files.txt"), samp = config['sample']),
+        expand(join(outdir, "{samp}/checkm/checkm.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/final/{samp}_simple.tsv"), samp = config['sample']),
@@ -90,56 +95,91 @@ rule bwa_align:
     threads: 8
     shell: """
         bwa mem -t {threads} {input.asm}  {input.reads} |samtools sort --threads {threads} > {output}
+        bwa index {output}
+        samtools index {output}
         """
 
-rule align_lr:
+rule concoct_cut:
     input:
-        join(outdir, "{samp}/idx/{samp}.fa"),
-        reads
-    log:
-        join(outdir, "{samp}/logs/align_lr.log")
+        config['assembly']
     output:
-        join(outdir, "{samp}/{samp}_lr.bam")
-    singularity:
-        "shub://bsiranosian/bens_1337_workflows:binning"
-    resources:
-        mem = 48,
-        time = 6
-    threads: 16
-    shell: """
-        minimap2 -t {threads} -ax map-ont {input} | samtools sort --threads {threads} > {output}
-        """
-
-rule metabat_pre:
-    input:
-        join(outdir, "{samp}/{samp}_lr.bam") if long_read else join(outdir, "{samp}/{samp}.bam") #choose a long read alignment or short read alignment
-    output:
-        single = join(outdir, "{samp}/{samp}.fa.depth.txt")
-    params:
-        paired_out = join(outdir, "{samp}/{samp}.fa.paired.txt")
-    singularity:
-        "shub://bsiranosian/bens_1337_workflows:binning"
-    shell: """
-        jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {params.paired_out} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
-        """
-
-checkpoint metabat:
-    input:
-        asm = join(outdir, "{samp}/idx/{samp}.fa"),
-        depth = join(outdir, "{samp}/{samp}.fa.depth.txt"),
-    output:
-        directory(join(outdir, "{samp}/bins/")) #the number of bins is unknown prior to execution
-    singularity:
-        "shub://bsiranosian/bens_1337_workflows:binning"
+        cut_contigs = join(outdir, '{samp}/{samp}_contigs_10K.fa'),
+        bedfile = join(outdir, '{samp}/{samp}_contigs_10K.bed')
     resources:
         mem = 64,
-        time = 24
-    threads: 4
-    params:
-        outstring = join(outdir, "{samp}/bins/bin")
+        time = 12
+    singularity:
+        'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
     shell: """
-        metabat2 --seed 1 -t {threads} --unbinned --inFile {input.asm} --outFile {params.outstring} --abdFile {input.depth}
-        """
+        cut_up_fasta.py {input} -c 10000 -o 0 --merge_last -b {output.bedfile} > {output.cut_contigs}
+    """
+
+rule concoct_coverage:
+    input:
+        bedfile = rules.concoct_cut.output.bedfile,
+        bam = rules.bwa_align.output
+    output:
+        join(outdir, '{samp}/{samp}_coverage_table.tsv')
+    resources:
+        mem = 64,
+        time = 12
+    singularity:
+        'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
+    shell: """
+        concoct_coverage_table.py {input.bedfile} {input.bam} > {output}
+    """
+
+rule concoct_run:
+    input:
+        cut_contigs = rules.concoct_cut.output.cut_contigs,
+        coverage = rules.concoct_coverage.output
+    output:
+        join(outdir, '{samp}/concoct/clustering_gt1000.csv')
+    params:
+        outdir = join(outdir, '{samp}/concoct')
+    threads: 4
+    resources:
+        mem = 64, 
+        time = 24
+    singularity:
+        'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
+    shell: """
+        concoct --composition_file {input.cut_contigs} \
+        --coverage_file {input.coverage} -b {params.outdir}
+    """
+
+rule concoct_merge:
+    input:
+        clustering = rules.concoct_run.output
+    output:
+        join(outdir, '{samp}/concoct/clustering_merged.csv')
+    resources:
+        mem = 64,
+        time = 12
+    singularity:
+        'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
+    shell: """
+        merge_cutup_clustering.py {input} > {output}
+    """
+
+checkpoint concoct_extract_bins:
+    input:
+        original_contigs = config['assembly'],
+        clustering_merged = rules.concoct_merge.output
+    output:
+        directory(join(outdir, "{samp}/bins/")) #the number of bins is unknown prior to execution
+    params:
+        outdir = join(outdir, '{samp}/bins/')
+    resources:
+        mem = 64,
+        time = 12
+    singularity:
+        'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
+    shell: """
+    extract_fasta_bins.py {input.original_contigs} {input.clustering_merged} \
+    --output_path {params.outdir}
+    """
+
 
 rule checkm:
     input:
@@ -212,7 +252,7 @@ rule quast:
         """
 
 rule pull_prokka:
-    input: config['assembly'],
+    input:
     output: join(outdir, "{samp}/prokka/pulled.txt") 
     singularity:
         "shub://bsiranosian/bens_1337_workflows:prokka"
@@ -229,7 +269,7 @@ rule prokka:
     log:
         join(outdir, "{samp}/logs/prokka_{bin}.log")
     singularity:
-       "shub://bsiranosian/bens_1337_workflows:prokka"
+        "shub://bsiranosian/bens_1337_workflows:prokka"
     resources:
         mem = 48,
         time = lambda wildcards, attempt: 4 * attempt,
@@ -246,6 +286,17 @@ rule prokka:
             prokka {input} --outdir {params.prokkafolder} --prefix {params.prefix} --centre X --compliant --force --cpus {threads} --noanno
         fi
         """
+
+rule prokka_aggregate:
+    input: lambda wildcards: expand(join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff"), bin = get_bins(wildcards), samp = wildcards.samp),
+    output: join(outdir, "{samp}/prokka/files.txt")
+    run:
+        print(input)
+        with open(output[0], 'w') as of:
+            for i in input:
+                print('FUCK', file=of)
+                print(i, file=of)
+
 
 rule bam_idx:
     input:
@@ -365,8 +416,9 @@ rule label_bins:
     script:
         "scripts/assign_species.py"
 
+
 rule postprocess:
-    input:
+    input:  
         prokka = lambda wildcards: expand(rules.prokka.output, bin = get_bins(wildcards), samp = wildcards.samp),
         quast = lambda wildcards: expand(rules.quast.output, bin = get_bins(wildcards), samp = wildcards.samp),
         checkm = join(outdir, "{samp}/checkm/checkm.tsv"),
