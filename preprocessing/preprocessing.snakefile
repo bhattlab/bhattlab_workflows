@@ -25,10 +25,10 @@ localrules: assembly_meta_file, pre_multiqc, post_multiqc, cleanup
 rule all:
 	input:
 		expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX),
-		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
-		# expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
-		# join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
-		# join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=READ_SUFFIX),
+		expand(join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_fastqc.html"), sample=SAMPLE_PREFIX, read=['1', '2', 'orphans']),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/pre_multiqc/multiqc_report.html"),
+		join(PROJECT_DIR, "01_processing/00_qc_reports/post_multiqc/multiqc_report.html"),
 		join(PROJECT_DIR, "01_processing/assembly_input.txt"),
 		join(PROJECT_DIR, "01_processing/classification_input.txt"),
 		join(PROJECT_DIR, "01_processing/readcounts.tsv"),
@@ -220,8 +220,9 @@ rule sync:
 		rev = join(PROJECT_DIR, "01_processing/03_sync/{sample}_2.fq"),
 		orp = join(PROJECT_DIR, "01_processing/03_sync/{sample}_orphans.fq")
 	resources:
-		time = lambda wildcards, attempt: 12 * attempt
-	params:
+		time = 12,
+		mem = 128
+	params: 
 		outfile_paired_1 = rules.dereplicate_fwd.output.fwd + ".paired.fq",
 		outfile_single_1 = rules.dereplicate_fwd.output.fwd + ".single.fq",
 		outfile_paired_2 = rules.dereplicate_rev.output.rev + ".paired.fq",
@@ -256,9 +257,9 @@ rule rm_host_reads:
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
 		# if an index needs to be built, use bwa index ref.fa
 		# run on paired reads
-		bwa mem -t {threads} {input.bwa_index} {input.fwd} {input.rev} | samtools view -bS - | samtools bam2fq -f 4 -1 {output.unmapped_1} -2 {output.unmapped_2} -
+		bwa mem -C -t {threads} {input.bwa_index} {input.fwd} {input.rev} | samtools view -b - | samtools fastq -t -T BX -f 4 -1 {output.unmapped_1} -2 {output.unmapped_2} -
 		# run on unpaired reads
-		bwa mem -t {threads} {input.bwa_index} {input.orp} | samtools view -bS - | samtools bam2fq -f 4 - > {output.unmapped_orp}
+		bwa mem -C -t {threads} {input.bwa_index} {input.orp} | samtools view -bS - | samtools fastq -t -T BX -f 4 - > {output.unmapped_orp}
 	"""
 
 
@@ -275,7 +276,8 @@ rule rm_host_sync:
 		orp = join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq")
 	threads: 1	
 	resources:
-		time = 6
+		time = 12,
+		mem = 128
 	params:
 		outfile_paired_1 = rules.rm_host_reads.output.unmapped_1 + ".paired.fq",
 		outfile_single_1 = rules.rm_host_reads.output.unmapped_1 + ".single.fq",
