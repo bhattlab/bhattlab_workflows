@@ -4,6 +4,11 @@ import sys
 ################################################################################
 # specify project directories
 PROJECT_DIR = config["output_directory"]
+# convert PROJECT_DIR to absolute path
+if PROJECT_DIR[0] == '~':
+    PROJECT_DIR = expanduser(PROJECT_DIR)
+PROJECT_DIR = abspath(PROJECT_DIR)
+
 # get input samples from sample table
 with open(config["sample_table"]) as inf:
     insamps = [i for i in inf.readlines() if i != '\n']

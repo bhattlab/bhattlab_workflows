@@ -1,0 +1,8 @@
+seed_assembler_used: "spades" # can also be megahit
+
+# these should be the same used in the assembly workflow
+output_directory: "assembly"
+sample_table: "preprocessing/01_processing/assembly_input.txt"
+
+# number of cores to use for the athena assembly step
+athena_cores: 32
