@@ -3,13 +3,13 @@
 options(stringsAsFactors = F)
 # use the snakemake inputs iteratively
 # prokka
-prokka.files <- snakemake@input[['prokka']]
-quast.files <- snakemake@input[['quast']]
+prokka.files <- snakemake@params[['prokka']]
+quast.files <- snakemake@params[['quast']]
 checkm.files <- snakemake@input[['checkm']]
-trna.files <- snakemake@input[['trna']]
-rrna.files <- snakemake@input[['rrna']]
+trna.files <- snakemake@params[['trna']]
+rrna.files <- snakemake@params[['rrna']]
 classify.files <- snakemake@input[['classify']]
-coverage.files <- snakemake@input[['coverage']]
+coverage.files <- snakemake@params[['coverage']]
 bins <- snakemake@params[['bins']]
 sample.name <- snakemake@params[['sample']]
 
@@ -37,17 +37,15 @@ for (b in bins){
 quast.df <- data.frame()
 for (b in bins){
   f <- quast.files[b]
-  df <- read.table(f, sep='\t', comment.char = '', quote = '')
+  df <- read.table(f, sep='\t', comment.char = '', quote = '', skip=1, row.names=1)
   if(nrow(quast.df)==0){
     quast.df <- df
   } else {
-    quast.df <- cbind(quast.df, df[,2])
+    quast.df <- cbind(quast.df, df[,1])
   }
 }
 quast.df <- as.data.frame(t(quast.df))
-colnames(quast.df) <- quast.df[1,]
-quast.df <- quast.df[2:nrow(quast.df), ]
-rownames(quast.df) <- quast.df$Assembly
+rownames(quast.df) <- bins
 
 # process checkm
 checkm.df <- read.table(checkm.files[1], sep='\t', fill=T, comment.char = '', header=T)
@@ -102,7 +100,7 @@ colnames(coverage.df) <- c('Sample', 'Bin', 'Coverage')
 out.df <- data.frame(Bin=bins,
                      Sample=sample.name, 
                      Genes=bin.gene.count[bins])
-out.df <- cbind(out.df, quast.df[bins, 2:ncol(quast.df)])
+out.df <- cbind(out.df, quast.df[bins, ])
 out.df <- cbind(out.df, checkm.df[bins, 2:ncol(checkm.df)])
 out.df$tRNA <- bin.trna.count[bins]
 out.df$rna.16S <- bin.16S.count[bins]

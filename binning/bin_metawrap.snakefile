@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# metagenomic binning with DASTool
-# Written by Alyssa Benjamin (https://github.com/ambenj) June 2019
+# metagenomic binning with metaWRAP
 
 from os.path import join, abspath, expanduser
 
-localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins
+localrules: bwa_index_setup, postprocess, label_bins, extract_metawrap
 
 # Read in sample and outdir from config file
 samp = config['sample']
@@ -42,16 +41,12 @@ def get_maxbin_bins(wildcards):
     outputs = checkpoints.maxbin.get(**wildcards).output[0]
     return glob_wildcards(os.path.join(outputs, "{maxbin_bin}.fasta")).maxbin_bin
 
-def get_mycc_bins(wildcards):
-    outputs = checkpoints.mycc.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{mycc_bin}.fasta")).mycc_bin
-
 def get_concoct_bins(wildcards):
     outputs = checkpoints.concoct_extract_bins.get(**wildcards).output[0]
     return glob_wildcards(os.path.join(outputs, "{concoct_bin}.fasta")).concoct_bin
 
-def get_DAStool_bins(wildcards):
-    outputs = checkpoints.extract_DAStool.get(**wildcards).output[0]
+def get_metawrap_bins(wildcards):
+    outputs = checkpoints.extract_metawrap.get(**wildcards).output[0]
     # print(glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin)
     return glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin
 
@@ -63,7 +58,7 @@ rule all:
         # checkm - not necessary to run for all binners
         # expand(join(outdir, "{samp}/metabat/checkm/checkm.tsv"), samp = config['sample']),
         # expand(join(outdir, "{samp}/maxbin/checkm/checkm.tsv"), samp = config['sample']),
-        # expand(join(outdir, "{samp}/mycc/checkm/checkm.tsv"), samp = config['sample']),
+        # expand(join(outdir, "{samp}/concoct/checkm/checkm.tsv"), samp = config['sample']),
         # Post-processing
         expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = config['sample']),
         expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = config['sample']),
@@ -213,29 +208,6 @@ checkpoint maxbin:
         mv *.fasta bins/
         """
 
-# Run myCC binner
-checkpoint mycc:
-    input:
-        contigs = join(outdir, "{samp}/idx/{samp}.fa"),
-    output:
-        directory(join(outdir, "{samp}/mycc/bins"))
-    singularity:
-        "docker://990210oliver/mycc.docker:v1"
-    params:
-        outfolder = join(outdir, "{samp}/mycc"),
-        workdir = join(outdir, "{samp}")
-    resources:
-        time=lambda wildcards, attempt: attempt * 12,
-        mem=lambda wildcards, attempt: attempt * 128
-    shell: """
-        if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
-        cd {params.workdir}
-        MyCC.py {input.contigs} -meta
-        mv 20*/ {params.outfolder}/  # change variable folder name to mycc
-        mkdir {params.outfolder}/bins/
-        mv {params.outfolder}/*.fasta {params.outfolder}/bins/
-        """
-
 # Run concoct binner in multiple steps
 rule concoct_cut:
     input:
@@ -318,53 +290,44 @@ checkpoint concoct_extract_bins:
     --output_path {params.outdir}
     """
 
-# Aggregate binning results using DAStool
-rule DAStool:
+# Aggregate binning results using metawrap
+rule metawrap:
     input:
         lambda wildcards: expand(join(outdir, "{samp}/metabat/bins/{metabat_bin}.fa"), metabat_bin = get_metabat_bins(wildcards), samp = wildcards.samp),
         lambda wildcards: expand(join(outdir, "{samp}/maxbin/bins/{maxbin_bin}.fasta"), maxbin_bin = get_maxbin_bins(wildcards), samp = wildcards.samp),
-        lambda wildcards: expand(join(outdir, "{samp}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), samp = wildcards.samp),
-        lambda wildcards: expand(join(outdir, "{samp}/concoct/bins/{mycc_bin}.fasta"), mycc_bin = get_concoct_bins(wildcards), samp = wildcards.samp),
+        lambda wildcards: expand(join(outdir, "{samp}/concoct/bins/{concoct_bin}.fasta"), concoct_bin = get_concoct_bins(wildcards), samp = wildcards.samp),
         contigs = join(outdir, "{samp}/idx/{samp}.fa"),
     output: 
-        join(outdir, "{samp}/DAS_tool/completed.txt")
+        join(outdir, "{samp}/metawrap/completed.txt")
     singularity:
-        "shub://ambenj/bin_das_tool:dastool"
+        "shub://bsiranosian/bens_1337_workflows:metawrap"
     params:
-        outfolder = join(outdir, "{samp}/DAS_tool"),
-        outfolder_fourmethods = join(outdir, "{samp}/DAS_tool/fourmethods"),
+        outfolder = join(outdir, "{samp}/metawrap"),
         metabat_dir = join(outdir, "{samp}/metabat/bins/"),
         maxbin_dir = join(outdir, "{samp}/maxbin/bins/"),
-        mycc_dir = join(outdir, "{samp}/mycc/bins/"),
         concoct_dir = join(outdir, "{samp}/concoct/bins/"),
-        metabat_tsv = join(outdir, "{samp}/DAS_tool/metabat_scaffold2bin.tsv"),
-        maxbin_tsv = join(outdir, "{samp}/DAS_tool/maxbin_scaffold2bin.tsv"),
-        mycc_tsv = join(outdir, "{samp}/DAS_tool/mycc_scaffold2bin.tsv"),
-        concoct_tsv = join(outdir, "{samp}/DAS_tool/concoct_scaffold2bin.tsv"),
+        min_completeness = 70,
+        max_contamination = 10
     threads: 8
     resources:
-        time=lambda wildcards, attempt: attempt * 6
+        time = lambda wildcards, attempt: attempt * 12,
+        mem = 256
     shell: """
-        # Prepare scaffold2bin file for each set of bins
-        Fasta_to_Scaffolds2Bin.sh -e fa -i {params.metabat_dir} > {params.metabat_tsv}
-        Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.maxbin_dir} > {params.maxbin_tsv}
-        Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.mycc_dir} > {params.mycc_tsv}
-        Fasta_to_Scaffolds2Bin.sh -e fa -i {params.concoct_dir} > {params.concoct_tsv}
-        # Run DAS_Tool
-        DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.mycc_tsv},{params.concoct_tsv} \
-        -l metabat,maxbin,mycc,concoct -c {input.contigs} -o {params.outfolder_fourmethods} \
-        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
+        metawrap bin_refinement -o {params.outfolder} \
+        -t {threads} -m {resources.mem} \
+        -A {params.metabat_dir} -B {params.maxbin_dir} -C {params.concoct_dir} \
+        -c {params.min_completeness} -x {params.max_contamination}
         touch {output}
         """
 
 # extract the bins as a separate rule to speed up execution
-checkpoint extract_DAStool:
-    input: rules.DAStool.output
+checkpoint extract_metawrap:
+    input: rules.metawrap.output
     output:
-        directory(join(outdir, "{samp}/DAS_tool_bins"))
+        directory(join(outdir, "{samp}/metawrap_bins"))
     params:
-        old_binfolder = join(outdir, "{samp}/DAS_tool/fourmethods_DASTool_bins"),
-        new_binfolder = join(outdir, "{samp}/DAS_tool_bins"),
+        old_binfolder = join(outdir, "{samp}/metawrap/binsABC"),
+        new_binfolder = join(outdir, "{samp}/metawrap_bins"),
     shell: """
         mkdir -p {params.new_binfolder}
         cp {params.old_binfolder}/*.fa {params.new_binfolder}
@@ -374,103 +337,38 @@ checkpoint extract_DAStool:
 #####################################################
 ###################### CheckM #######################
 #####################################################
-
-# checkm for metabat output
-rule checkm_metabat:
-    input:
-        lambda wildcards: expand(join(outdir, "{samp}/metabat/bins/{metabat_bin}.fa"), metabat_bin = get_metabat_bins(wildcards), samp = wildcards.samp)
-    output:
-        join(outdir, "{samp}/metabat/checkm/checkm.tsv")
-    log:
-        join(outdir, "{samp}/metabat/logs/checkm.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:checkm"
-    resources:
-        mem = 128,
-        time = 12
-    threads: 4
-    params:
-        binfolder = join(outdir, "{samp}/metabat/bins/"),
-        checkmfolder = join(outdir, "{samp}/metabat/checkm/"),
-    shell: """
-        rm -rf {samp}/metabat/checkm/*
-        checkm lineage_wf -t {threads} -x fa --tab_table -f {output} {params.binfolder} {params.checkmfolder}
-        """
-
-# checkm for maxbin output
-rule checkm_maxbin:
-    input:
-        lambda wildcards: expand(join(outdir, "{samp}/maxbin/bins/{maxbin_bin}.fasta"), maxbin_bin = get_maxbin_bins(wildcards), samp = wildcards.samp)
-    output:
-        join(outdir, "{samp}/maxbin/checkm/checkm.tsv")
-    log:
-        join(outdir, "{samp}/maxbin/logs/checkm.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:checkm"
-    resources:
-        mem = 128,
-        time = 12
-    threads: 4
-    params:
-        binfolder = join(outdir, "{samp}/maxbin/bins"),
-        checkmfolder = join(outdir, "{samp}/maxbin/checkm/")
-    shell: """
-        rm -rf {samp}/maxbin/checkm/*
-        checkm lineage_wf -t {threads} -x fasta --tab_table -f {output} {params.binfolder} {params.checkmfolder}
-        """
-
-rule checkm_mycc:
-    input:
-        lambda wildcards: expand(join(outdir, "{samp}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), samp = wildcards.samp)
-    output:
-        join(outdir, "{samp}/mycc/checkm/checkm.tsv")
-    log:
-        join(outdir, "{samp}/mycc/logs/checkm.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:checkm"
-    resources:
-        mem = 128,
-        time = 12
-    threads: 4
-    params:
-        binfolder = join(outdir, "{samp}/mycc/bins/"),
-        checkmfolder = join(outdir, "{samp}/mycc/checkm/"),
-    shell: """
-        rm -rf {samp}/mycc/checkm/*
-        checkm lineage_wf -t {threads} -x fasta --tab_table -f {output} {params.binfolder} {params.checkmfolder}
-        """
-
-# checkm for DAStool output
-rule checkm_DAStool:
-    input:
-        lambda wildcards: expand(join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp)
-    output:
-        join(outdir, "{samp}/DAS_tool/checkm/checkm.tsv")
-    log:
-        join(outdir, "{samp}/DAS_tool/logs/checkm.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:checkm"
-    resources:
-        mem = 128,
-        time = 12
-    threads: 4
-    params:
-        binfolder = join(outdir, "{samp}/DAS_tool_bins"),
-        checkmfolder = join(outdir, "{samp}/DAS_tool/checkm/"),
-        bin_ex = ".fa"
-    shell: """
-        rm -rf {samp}/DAS_tool/checkm/*
-        checkm lineage_wf -t {threads} -x {params.bin_ex} --tab_table -f {output} {params.binfolder} {params.checkmfolder}
-        """
+# checkm for metawrap output
+# should get run automatically
+# rule checkm_DAStool:
+#     input:
+#         lambda wildcards: expand(join(outdir, "{samp}/metawrap_bins/{bin}.fa"), bin = get_metawrap_bins(wildcards), samp = wildcards.samp)
+#     output:
+#         join(outdir, "{samp}/metawrap/checkm/checkm.tsv")
+#     log:
+#         join(outdir, "{samp}/metawrap/logs/checkm.log")
+#     singularity:
+#         "shub://bsiranosian/bin_genomes:checkm"
+#     resources:
+#         mem = 128,
+#         time = 12
+#     threads: 4
+#     params:
+#         binfolder = join(outdir, "{samp}/metawrap_bins"),
+#         checkmfolder = join(outdir, "{samp}/metawrap/checkm/"),
+#         bin_ex = ".fa"
+#     shell: """
+#         rm -rf {samp}/metawrap/checkm/*
+#         checkm lineage_wf -t {threads} -x {params.bin_ex} --tab_table -f {output} {params.binfolder} {params.checkmfolder}
+#         """
 
 #####################################################
-############ ANALYSIS OF DAS_TOOL BINS ##############
+############ ANALYSIS OF METAWRAP BINS ##############
 #####################################################
 
 # Use aragorn to detect tRNA and tmRNA genes
 rule aragorn:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/rna/trna/{bin}.fa.txt")
     log:
@@ -487,7 +385,7 @@ rule aragorn:
 # Use barrnap to predict ribosomal RNA
 rule barrnap:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/rna/rrna/{bin}.fa.txt")
     log:
@@ -504,7 +402,7 @@ rule barrnap:
 # Use quast to evaluate genome assemblies
 rule quast:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa")
     output:
         join(outdir, "{samp}/quast/{bin}.fa/report.tsv")
     log:
@@ -533,7 +431,7 @@ rule pull_prokka:
 # Use prokka to annotate metagenomes
 rule prokka:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"),
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa"),
         rules.pull_prokka.output
     output:
         join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff")
@@ -595,7 +493,7 @@ rule bam_idxstats:
 # Get mapping stats for each bin
 rule bin_idxstats:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa"),
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa"),
         join(outdir, "{samp}/{samp}_lr.bam.bai.tsv") if long_read else join(outdir, "{samp}/{samp}.bam.bai.tsv"), #choose a long read alignment or short read alignment,
     output:
         join(outdir, "{samp}/coverage/raw/{bin}.tsv")
@@ -627,12 +525,12 @@ rule bin_coverage:
     script:
         "scripts/bin_coverage.py"
 
-# index DAStool bins
+# index bins bins
 rule fasta_index:
     input:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa")
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa")
     output:
-        join(outdir, "{samp}/DAS_tool_bins/{bin}.fa.fai")
+        join(outdir, "{samp}/metawrap_bins/{bin}.fa.fai")
     log:
         join(outdir, "{samp}/logs/faidx_{bin}.log")
     singularity:
@@ -669,8 +567,8 @@ rule kraken2:
 rule label_bins:
     input:
         krak = join(outdir, "{samp}/classify/{samp}.krak"),
-        bins = lambda wildcards: expand(join(outdir, "{samp}/DAS_tool_bins/{bin}.fa.fai"),
-                                        bin = get_DAStool_bins(wildcards), samp = wildcards.samp)
+        bins = lambda wildcards: expand(join(outdir, "{samp}/metawrap_bins/{bin}.fa.fai"),
+                                        bin = get_metawrap_bins(wildcards), samp = wildcards.samp)
     output:
         join(outdir, "{samp}/classify/bin_species_calls.tsv")
     log:
@@ -678,29 +576,29 @@ rule label_bins:
     singularity:
         "shub://bsiranosian/bin_genomes:binning"
     params:
-        binfolder = join(outdir, "{samp}/DAS_tool_bins/"),
+        binfolder = join(outdir, "{samp}/metawrap_bins/"),
         custom_taxonomy = custom_taxonomy
     script:
         "scripts/assign_species.py"
 
 rule postprocess:
     input:
-        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(rules.quast.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        checkm = join(outdir, "{samp}/DAS_tool/checkm/checkm.tsv"),
-        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(rules.quast.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        # checkm = join(outdir, "{samp}/metawrap/checkm/checkm.tsv"),
+        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
         classify = rules.label_bins.output,
-        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
     output:
         full = join(outdir, "{samp}/final/{samp}.tsv"),
         simple = join(outdir, "{samp}/final/{samp}_simple.tsv")
     params:
-        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(rules.quast.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        bins = lambda wildcards: get_DAStool_bins(wildcards),
-        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(rules.quast.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
+        bins = lambda wildcards: get_metawrap_bins(wildcards),
+        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
         sample = samp
     script: "scripts/postprocess.R"

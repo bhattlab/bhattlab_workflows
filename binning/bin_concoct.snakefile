@@ -28,9 +28,6 @@ else:
 
 def get_bins(wildcards):
     outputs = checkpoints.concoct_extract_bins.get(**wildcards).output[0]
-    # print("GET BINS")
-    # print(outputs)
-    # print(glob_wildcards(join(outputs, "{bin}.fa")).bin)
     return(glob_wildcards(join(outputs, "{bin}.fa")).bin)
 
 rule all:
@@ -430,7 +427,12 @@ rule postprocess:
         full = join(outdir, "{samp}/final/{samp}.tsv"),
         simple = join(outdir, "{samp}/final/{samp}_simple.tsv")
     params:
+        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(rules.quast.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_bins(wildcards), samp = wildcards.samp),
         bins = lambda wildcards: get_bins(wildcards),
+        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_bins(wildcards), samp = wildcards.samp),
         sample = samp
     script: "scripts/postprocess.R"
 
