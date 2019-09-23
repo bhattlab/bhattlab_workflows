@@ -42,7 +42,7 @@ rule pre_fastqc:
 		outdir = join(PROJECT_DIR, "01_processing/00_qc_reports/pre_fastqc/")
 	threads: 1
 	resources:
-			time = 1,
+			time = 6,
 			mem = 32
 	singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
 	shell: """
@@ -257,9 +257,9 @@ rule rm_host_reads:
 		mkdir -p {PROJECT_DIR}/01_processing/04_host_align/
 		# if an index needs to be built, use bwa index ref.fa
 		# run on paired reads
-		bwa mem -C -t {threads} {input.bwa_index} {input.fwd} {input.rev} | samtools view -b - | samtools fastq -t -T BX -f 4 -1 {output.unmapped_1} -2 {output.unmapped_2} -
+		bwa mem -t {threads} {input.bwa_index} {input.fwd} {input.rev} | samtools view -b - | samtools fastq -t -T BX -f 4 -1 {output.unmapped_1} -2 {output.unmapped_2} -
 		# run on unpaired reads
-		bwa mem -C -t {threads} {input.bwa_index} {input.orp} | samtools view -bS - | samtools fastq -t -T BX -f 4 - > {output.unmapped_orp}
+		bwa mem -t {threads} {input.bwa_index} {input.orp} | samtools view -bS - | samtools fastq -t -T BX -f 4 - > {output.unmapped_orp}
 	"""
 
 

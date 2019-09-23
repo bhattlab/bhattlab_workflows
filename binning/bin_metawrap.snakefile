@@ -2,8 +2,12 @@
 # metagenomic binning with metaWRAP
 
 from os.path import join, abspath, expanduser
-
 localrules: bwa_index_setup, postprocess, label_bins, extract_metawrap
+
+# METAWRAP SETTINGS
+# TODO: export to config
+metawrap_min_completeness = 70
+metawrap_max_contamination = 10
 
 # Read in sample and outdir from config file
 samp = config['sample']
@@ -306,8 +310,6 @@ rule metawrap:
         metabat_dir = join(outdir, "{samp}/metabat/bins/"),
         maxbin_dir = join(outdir, "{samp}/maxbin/bins/"),
         concoct_dir = join(outdir, "{samp}/concoct/bins/"),
-        min_completeness = 70,
-        max_contamination = 10
     threads: 8
     resources:
         time = lambda wildcards, attempt: attempt * 12,
@@ -316,7 +318,7 @@ rule metawrap:
         metawrap bin_refinement -o {params.outfolder} \
         -t {threads} -m {resources.mem} \
         -A {params.metabat_dir} -B {params.maxbin_dir} -C {params.concoct_dir} \
-        -c {params.min_completeness} -x {params.max_contamination}
+        -c {metawrap_min_completeness} -x {metawrap_max_contamination}
         touch {output}
         """
 
@@ -326,7 +328,8 @@ checkpoint extract_metawrap:
     output:
         directory(join(outdir, "{samp}/metawrap_bins"))
     params:
-        old_binfolder = join(outdir, "{samp}/metawrap/binsABC"),
+        old_binfolder = join(outdir, "{samp}/metawrap/metawrap_" + \
+            str(metawrap_min_completeness) + "_" + str(metawrap_max_contamination) + "_bins"),
         new_binfolder = join(outdir, "{samp}/metawrap_bins"),
     shell: """
         mkdir -p {params.new_binfolder}
@@ -338,28 +341,27 @@ checkpoint extract_metawrap:
 ###################### CheckM #######################
 #####################################################
 # checkm for metawrap output
-# should get run automatically
-# rule checkm_DAStool:
-#     input:
-#         lambda wildcards: expand(join(outdir, "{samp}/metawrap_bins/{bin}.fa"), bin = get_metawrap_bins(wildcards), samp = wildcards.samp)
-#     output:
-#         join(outdir, "{samp}/metawrap/checkm/checkm.tsv")
-#     log:
-#         join(outdir, "{samp}/metawrap/logs/checkm.log")
-#     singularity:
-#         "shub://bsiranosian/bin_genomes:checkm"
-#     resources:
-#         mem = 128,
-#         time = 12
-#     threads: 4
-#     params:
-#         binfolder = join(outdir, "{samp}/metawrap_bins"),
-#         checkmfolder = join(outdir, "{samp}/metawrap/checkm/"),
-#         bin_ex = ".fa"
-#     shell: """
-#         rm -rf {samp}/metawrap/checkm/*
-#         checkm lineage_wf -t {threads} -x {params.bin_ex} --tab_table -f {output} {params.binfolder} {params.checkmfolder}
-#         """
+rule checkm_metawrap:
+    input:
+        lambda wildcards: expand(join(outdir, "{samp}/metawrap_bins/{bin}.fa"), bin = get_metawrap_bins(wildcards), samp = wildcards.samp)
+    output:
+        join(outdir, "{samp}/metawrap/checkm/checkm.tsv")
+    log:
+        join(outdir, "{samp}/metawrap/logs/checkm.log")
+    singularity:
+        "shub://bsiranosian/bin_genomes:checkm"
+    resources:
+        mem = 128,
+        time = 12
+    threads: 4
+    params:
+        binfolder = join(outdir, "{samp}/metawrap_bins"),
+        checkmfolder = join(outdir, "{samp}/metawrap/checkm/"),
+        bin_ex = ".fa"
+    shell: """
+        rm -rf {samp}/metawrap/checkm/*
+        checkm lineage_wf -t {threads} -x {params.bin_ex} --tab_table -f {output} {params.binfolder} {params.checkmfolder}
+        """
 
 #####################################################
 ############ ANALYSIS OF METAWRAP BINS ##############
@@ -585,7 +587,7 @@ rule postprocess:
     input:
         prokka = lambda wildcards: expand(rules.prokka.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
         quast = lambda wildcards: expand(rules.quast.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
-        # checkm = join(outdir, "{samp}/metawrap/checkm/checkm.tsv"),
+        checkm = join(outdir, "{samp}/metawrap/checkm/checkm.tsv"),
         trna = lambda wildcards: expand(rules.aragorn.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
         rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_metawrap_bins(wildcards), samp = wildcards.samp),
         classify = rules.label_bins.output,
