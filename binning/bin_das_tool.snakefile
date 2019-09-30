@@ -685,22 +685,17 @@ rule label_bins:
 
 rule postprocess:
     input:
-        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(rules.quast.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        checkm = join(outdir, "{samp}/DAS_tool/checkm/checkm.tsv"),
-        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        prokka = lambda wildcards: expand(join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff"), bin = get_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(join(outdir, "{samp}/quast/{bin}.fa/report.tsv"), bin = get_bins(wildcards), samp = wildcards.samp),
+        checkm = join(outdir, "{samp}/checkm/checkm.tsv"),
+        trna = lambda wildcards: expand(join(outdir, "{samp}/rna/trna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(join(outdir, "{samp}/rna/rrna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
         classify = rules.label_bins.output,
-        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        coverage = lambda wildcards: expand(join(outdir, "{samp}/coverage/{bin}.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
     output:
         full = join(outdir, "{samp}/final/{samp}.tsv"),
         simple = join(outdir, "{samp}/final/{samp}_simple.tsv")
     params:
-        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(rules.quast.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
         bins = lambda wildcards: get_DAStool_bins(wildcards),
-        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
         sample = samp
     script: "scripts/postprocess.R"

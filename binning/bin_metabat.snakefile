@@ -129,6 +129,8 @@ checkpoint metabat:
         depth = join(outdir, "{samp}/{samp}.fa.depth.txt"),
     output:
         directory(join(outdir, "{samp}/bins/")) #the number of bins is unknown prior to execution
+    log:
+        join(outdir, "{samp}/logs/metabat.log")
     singularity:
         "shub://bsiranosian/bens_1337_workflows:binning"
     resources:
@@ -139,6 +141,7 @@ checkpoint metabat:
         outstring = join(outdir, "{samp}/bins/bin")
     shell: """
         metabat2 --seed 1 -t {threads} --unbinned --inFile {input.asm} --outFile {params.outstring} --abdFile {input.depth}
+        
         """
 
 rule checkm:
@@ -367,13 +370,13 @@ rule label_bins:
 
 rule postprocess:
     input:
-        prokka = lambda wildcards: expand(rules.prokka.output, bin = get_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(rules.quast.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        prokka = lambda wildcards: expand(join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff"), bin = get_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(join(outdir, "{samp}/quast/{bin}.fa/report.tsv"), bin = get_bins(wildcards), samp = wildcards.samp),
         checkm = join(outdir, "{samp}/checkm/checkm.tsv"),
-        trna = lambda wildcards: expand(rules.aragorn.output, bin = get_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(rules.barrnap.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        trna = lambda wildcards: expand(join(outdir, "{samp}/rna/trna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(join(outdir, "{samp}/rna/rrna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
         classify = rules.label_bins.output,
-        coverage = lambda wildcards: expand(rules.bin_coverage.output, bin = get_bins(wildcards), samp = wildcards.samp),
+        coverage = lambda wildcards: expand(join(outdir, "{samp}/coverage/{bin}.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
     output:
         full = join(outdir, "{samp}/final/{samp}.tsv"),
         simple = join(outdir, "{samp}/final/{samp}_simple.tsv")

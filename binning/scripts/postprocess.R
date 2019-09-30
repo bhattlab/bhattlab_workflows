@@ -3,13 +3,13 @@
 options(stringsAsFactors = F)
 # use the snakemake inputs iteratively
 # prokka
-prokka.files <- snakemake@params[['prokka']]
-quast.files <- snakemake@params[['quast']]
+prokka.files <- snakemake@input[['prokka']]
+quast.files <- snakemake@input[['quast']]
 checkm.files <- snakemake@input[['checkm']]
-trna.files <- snakemake@params[['trna']]
-rrna.files <- snakemake@params[['rrna']]
+trna.files <- snakemake@input[['trna']]
+rrna.files <- snakemake@input[['rrna']]
 classify.files <- snakemake@input[['classify']]
-coverage.files <- snakemake@params[['coverage']]
+coverage.files <- snakemake@input[['coverage']]
 bins <- snakemake@params[['bins']]
 sample.name <- snakemake@params[['sample']]
 
