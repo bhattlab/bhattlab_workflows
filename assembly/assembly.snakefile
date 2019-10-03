@@ -1,4 +1,4 @@
-from os.path import join
+from os.path import join, abspath, expanduser
 import sys
 
 ################################################################################
@@ -68,15 +68,23 @@ rule megahit:
 
 
 rule quast_megahit:
-        input:
-            rules.megahit.output
-        output:
-            join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast/report.txt")
-        params:
-            outdir = join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast")
-        shell: """
-            quast.py -o {params.outdir} {input} --fast
-            """
+    input:
+        rules.megahit.output
+    output:
+        join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast/report.txt")
+    singularity: "docker://quay.io/biocontainers/quast:5.0.2--py35pl526ha92aebf_0"
+    params:
+        outdir = join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast")
+    shell: """
+        quast.py -o {params.outdir} {input} --fast
+        """
+def get_reads_command(reads):
+    if len(reads) == 3: #paired plus orphans
+        return("-1 {0} -2 {1} -s {2}".format(reads[0], reads[1], reads[2]))
+    elif len(reads) == 2: #paired
+        return("-1 {0} -2 {1}".format(reads[0], reads[1]))
+    elif len(reads) == 1: #single-ended
+        return("-12 {0}".format(reads[0]))
 
 rule spades:
     input: lambda wildcards: sample_dict[wildcards.sample]
@@ -85,19 +93,15 @@ rule spades:
         time = lambda wildcards, attempt: 24 * attempt,
         mem = lambda wildcards, attempt: 100 * attempt
     threads: 8
+    singularity: "docker://quay.io/biocontainers/spades:3.13.1--h2d02072_2"
     params:
-        outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/")
-    run:
-        reads = sample_dict[wildcards.sample]
-        if len(reads) == 3: #paired plus orphans
-            cmd = "spades.py --meta -1 {reads[0]} -2 {reads[1]} -s {reads[2]}"
-        elif len(reads) == 2: #paired
-            cmd = "spades.py --meta -1 {reads[0]} -2 {reads[1]}"
-        elif len(reads) == 1: #single-ended
-            cmd = "spades.py --meta -12 {reads[0]}"
-        cmd += " -o {params.outdir} -m {resources.mem} -t {threads}"
-        # cmd += " -o {params.outdir} -m {resources.mem} -t {threads} --only-assembler"
-        shell(cmd)
+        outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/"),
+        reads_command = lambda wildcards: get_reads_command(sample_dict[wildcards.sample])
+    shell: """
+        spades.py --meta {params.reads_command}  -o {params.outdir} -m {resources.mem} -t {threads}
+
+    """
+# cmd += " -o {params.outdir} -m {resources.mem} -t {threads} --only-assembler"
 # add in --only-assembler if spades gets stuck on read error correction
 
 rule quast_spades:
@@ -105,6 +109,7 @@ rule quast_spades:
         rules.spades.output
     output:
         join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.txt")
+    singularity: "docker://quay.io/biocontainers/quast:5.0.2--py35pl526ha92aebf_0"
     params:
         outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast")
     resources:
