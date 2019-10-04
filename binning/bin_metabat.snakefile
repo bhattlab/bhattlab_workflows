@@ -5,6 +5,9 @@ localrules: bwa_index_setup, postprocess, label_bins, metabat, fasta_index
 
 samp = config['sample']
 outdir = config['outdir_base']
+assembly = config['assembly']
+kraken2db = config['kraken2db']
+
 # are we using a non-standard (non ncbi) taxonomy
 if 'custom_taxonomy' in config:
     custom_taxonomy = config['custom_taxonomy']
@@ -20,6 +23,8 @@ if 'reads2' in config and not config['reads2'] == '':
     reads = [config['reads1'], config['reads2']]
 else:
     reads = [config['reads1']]
+if len(reads)==2 and reads[1] ==None:
+    reads = [config['reads1']]
 
 if 'long_read' in config and config['long_read']:
     long_read = True
@@ -33,15 +38,15 @@ def get_bins(wildcards):
 rule all:
     input:
         reads,
-        config['assembly'],
-        config['kraken2db'],
-        expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = config['sample']),
-        expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = config['sample']),
-        expand(join(outdir, "{samp}/final/{samp}_simple.tsv"), samp = config['sample']),
+        assembly,
+        kraken2db,
+        expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = samp),
+        expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = samp),
+        expand(join(outdir, "{samp}/final/{samp}_simple.tsv"), samp = samp),
 
 rule bwa_index_setup:
     input:
-        config['assembly']
+        assembly
     output:
         join(outdir, "{samp}/idx/{samp}.fa")
     shell: """
@@ -215,7 +220,7 @@ rule quast:
         """
 
 rule pull_prokka:
-    input: config['assembly'],
+    input: assembly,
     output: join(outdir, "{samp}/prokka/pulled.txt") 
     singularity:
         "shub://bsiranosian/bens_1337_workflows:prokka"
@@ -311,8 +316,7 @@ rule bin_coverage:
         time = 1
     params:
         read_length = config['read_length']
-    script:
-        "scripts/bin_coverage.py"
+    script: "scripts/bin_coverage.py"
 
 rule fasta_index:
     input:
@@ -341,7 +345,7 @@ rule kraken2:
     singularity:
         "shub://bsiranosian/bens_1337_workflows:binning"
     params: 
-        db = config['kraken2db']
+        db = kraken2db
     resources:
         mem = 256,
         time = 6
