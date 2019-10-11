@@ -19,30 +19,6 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
 ### Quickstart
 
 
-### First time setup
-
-
-First, install [miniconda3](https://conda.io/miniconda.html) on the cluster, as that's where you should be doing most of your workflow work.
-
-```
-# ON SCG
-# to download installer
-wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-# to run installer
-sh Miniconda3-latest-Linux-x86_64.sh
-# follow instructions, select a place to install miniconda. We recommend installing in the lab directory, /labs/asbhatt/YOURNAME/miniconda3
-#install snakemake
-conda install -c bioconda -c conda-forge snakemake
-```
-Then, if you haven't already, set up a Snakemake profile for SCG by following the instructions [here](https://github.com/bhattlab/slurm).
-Then clone this github repository to a place on scg. I keep a 'projects' folder in my home directory for cloning repos.
-```
-# ON SCG
-cd ~/projects
-git clone https://github.com/bhattlab/bhattlab_workflows.git
-cd ~/projects/bhattlab_workflows
-```
-
 ## Running the workflow
 Using the preprocessing workflow here as an example. You'll have to change options in the configuration file to match where your data lives on SCG, etc.
 ```
@@ -195,5 +171,5 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE3NTk4MjIwMTddfQ==
+eyJoaXN0b3J5IjpbMTE1ODk2MDU2OV19
 -->
