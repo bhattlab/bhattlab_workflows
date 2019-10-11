@@ -6,9 +6,12 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
  1. Setup
  2. Running a workflow
  3. Available workflows
-	 a.
-	 b. 
+	 a. Preprocessing metagenomic data
+	 b. Metagenomic Assembly
+	 c. Metagenomic B
+	  
 
+### Quickstart
 
 
 ### First time setup
@@ -187,5 +190,5 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNjU0NTk2Nzg1XX0=
+eyJoaXN0b3J5IjpbLTUzNTk5MDc3MV19
 -->
