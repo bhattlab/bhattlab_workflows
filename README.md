@@ -9,8 +9,10 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
 	 a. **Preprocessing** metagenomic data
 	 b. Metagenomic **Assembly**
 	 c. Metagenomic **Binning**
+	 f.  Metagenomic classification with **[Kraken2](https://github.com/bhattlab/kraken2_classification)**
 	 d. **Sourmash** read comparison
 	 e. **Download SRA** data
+	 
 	 f. Comparative microbial genomics pipelines
 	  
 
@@ -193,5 +195,5 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMjA2MDU2MzU2NV19
+eyJoaXN0b3J5IjpbLTE3NTk4MjIwMTddfQ==
 -->
