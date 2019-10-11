@@ -18,34 +18,6 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
 ### Quickstart
 
 
-## Running the workflow
-Using the preprocessing workflow here as an example. You'll have to change options in the configuration file to match where your data lives on SCG, etc.
-```
-snakemake --configfile config_preprocessing.yaml --snakefile path/to/preprocessing.snakefile \
---profile scg --jobs 100 --use-singularity --singularity-args '--bind /labs/ --bind /scratch/ '
-```
-
-For workflows other than preprocessing, conda environments are used.  Set these up like so:
-
-```
-# example for the assembly environment
-# where your working directory is the location you cloned the github repository
-# ~/projects/bhattlab_workflows  for example
-conda env create -f envs/assembly.yaml
-```
-
-Then run the workflow as follows:
-
-```
-conda activate assembly
-snakemake --configfile config_assembly.yaml --snakefile path/to/assembly.snakefile \
---profile scg --jobs 100
-```
-
-
-
-### Containers
-The containers for this repository can be found at https://www.singularity-hub.org/collections/2541. No intervention is required--they are downloaded and used automatically by snakemake when `--use-singularity` is provided as in the example command above.
 
 
 # Preprocessing
@@ -170,5 +142,5 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTcxMjczMjgxM119
+eyJoaXN0b3J5IjpbNDU0Nzg1ODAwXX0=
 -->
