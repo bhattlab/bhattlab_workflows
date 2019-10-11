@@ -39,6 +39,9 @@ snakemake --configfile config_preprocessing.yaml \
 
 The files that can then be used in downstream analyses will be in PROJECT_DIR/01_processing/05_sync/ as {sample}\_1.fq, {sample}\_2.fq, {sample}\_orphans.fq
 
+### Examine your output!
+Check to make sure your data is high quality after running this pipeline! View the multiqc reports for a good overview of quality. Are there any problems indicated? Did adapter sequence contamination get removed from pre to post? Also check the `01_processing/readcounts.pdf` and `01_processing/readcounts.tsv` file for the number of sequencing reads that were kept/discarded at each step. This is helpful for diagnosing problems with data.
+
 ### Reference genomes for removal of host reads
 For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories.
 - **Humans:**
@@ -65,5 +68,5 @@ Create bowtie index
 bwa index hg19.fa
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNjQ4MTcwODA2XX0=
+eyJoaXN0b3J5IjpbLTEyODI3MTExNzYsNjQ4MTcwODA2XX0=
 -->
