@@ -1,4 +1,8 @@
-## First time setup
+# Bhattlab workflows
+Computational workflows for metagenomics tasks, packaged with Snae
+
+### First time setup
+
 
 First, install [miniconda3](https://conda.io/miniconda.html) on the cluster, as that's where you should be doing most of your workflow work.
 
@@ -172,3 +176,6 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbNTc3OTg1MDM2XX0=
+-->
