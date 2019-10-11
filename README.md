@@ -6,69 +6,19 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
  1. [Setup](manual/setup.md)
  2. [Running a workflow](manual/running.md)
  3. Available workflows
-    a. **Preprocessing** metagenomic data
-    b. Metagenomic **Assembly**
-    c. Metagenomic **Binning**
-    f.  Metagenomic classification with **[Kraken2](https://github.com/bhattlab/kraken2_classification)**
-    d. **Sourmash** read comparison
-    e. **Download SRA** data
-    f. Comparative microbial genomics pipelines
+    - [**Preprocessing** metagenomic data](manual/preprocessing.md)
+    - [Metagenomic **Assembly**](manual/assembly.md)
+    - [Metagenomic **Binning**](manual/binning.md)
+    - [Metagenomic classification with **Kraken2**](https://github.com/bhattlab/kraken2_classification)
+    - [**Sourmash** read comparison](manual/sourmash.md)
+    - [**Download SRA** data](manual/download_sra.md)
+    - [Comparative microbial genomics pipelines](manual/comparative_genomics.md)
 	  
 
 ### Quickstart
 
 
 
-
-# Preprocessing
-
-To use this pipeline, edit parameters in the config_preprocessing.yaml, and specify the proper path to config file in the submission script.  The workflow is run with the first snakemake command above.
-
-**The only parameters that need changing in the config file**
-1. directory path containing demultiplexed raw fastq files (DATA_DIR)
-2. root directory path for output files (PROJECT_DIR)
-3. directory path for the host reference genome (BWA index)
-4. Directory of the scripts folder from the github, contains sync.py and plot_readcounts.R
-
-*This program runs under the assumption samples are named <sample_id>\_[R]1.fastq[fq].gz and <sample_id>\_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config.
-
-**This script will create the following folders:**
-- PROJECT_DIR/01_processing/00_qc_reports/pre_fastqc
-- PROJECT_DIR/01_processing/00_qc_reports/post_fastqc
-- PROJECT_DIR/01_processing/01_trimmed
-- PROJECT_DIR/01_processing/02_dereplicate
-- PROJECT_DIR/01_processing/03_sync
-- PROJECT_DIR/01_processing/04_host_align
-- PROJECT_DIR/01_processing/05_sync
-
-
-The files that can then be used in downstream analyses will be in PROJECT_DIR/01_processing/05_sync/ as {sample}\_1.fq, {sample}\_2.fq, {sample}\_orphans.fq
-
-### Reference genomes for removal of host reads
-For Bhatt lab purposes, we only conduct experiments on two hosts, humans and mice. You can specify the host reference genomes in the config using the following directories.
-- **Humans:**
-``` /labs/asbhatt/data/host_reference_genomes/hg19/hg19.fa ```
-- **Mice:**
-``` /labs/asbhatt/data/host_reference_genomes/mm10/mm10.fa ```
-
-If working on a different cluster or different model organism, these are the steps necessary to build the host reference index for alignment. I am showing the steps used to build Bhatt lab hosts from above using BWA.
-
-Download reference genomes
-```
-mkdir -p /labs/asbhatt/data/host_reference_genomes/ # change to preferred directory path
-cd /labs/asbhatt/data/host_reference_genomes/
-wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit;
-```
-Convert to fasta format
-```
-wget http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/twoBitToFa;
-chmod +x twoBitToFa;
-./twoBitToFa hg19.2bit hg19.fa;
-```
-Create bowtie index
-```
-bwa index hg19.fa
-```
 
 # Assembly
 
@@ -142,5 +92,5 @@ snakemake --snakefile /path/to/sra_download/sra_download.snakefile \
 # Classification and taxonomic barplots
 Deprecated. See our [Kraken2](https://github.com/bhattlab/kraken2_classification) github for the most up to date classification workflow.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNTMyMjE1MTBdfQ==
+eyJoaXN0b3J5IjpbNjYzNTk4Nzg3XX0=
 -->
