@@ -1,0 +1,13 @@
+# configuration file for compare_assembled_contigs
+
+reference_genome_single: ref.fa
+reference_genome_multi:
+
+# tab delimited file with two columns: 
+# sample	contig_file_path
+sample_contig_list: sample_contig_list.txt
+
+# output directory. Will create subfolders 
+outdir: compare_assembled_contigs
+include_reference_heatmap: True
+reference_name: reference

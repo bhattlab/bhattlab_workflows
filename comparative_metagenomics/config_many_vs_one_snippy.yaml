@@ -1,0 +1,10 @@
+# configfile for many vs one genome comparison
+
+# reference genome
+reference_file: 'references/lactococcus_phage_LP9104.fasta'
+reference_name: 'lactococcus_phage_LP9104'
+# output directory
+outdir: 'lactococcus_phage_LP9104'
+# sample table: tab delimited with three columns
+# name  reads1  reads2
+sample_file: 'sample_table_5.tsv'
