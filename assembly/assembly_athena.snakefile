@@ -1,5 +1,6 @@
 from os.path import join, abspath
 import sys
+import gzip
 
 localrules: prepare_athena_config
 
@@ -7,6 +8,12 @@ localrules: prepare_athena_config
 # takes in the output of spades (or other assembly) 
 # and preprocessed reads
 # does the athena assembly on the results
+
+# helper function for opening gzipped files
+def _open(filename, mode='r'):
+    if filename.endswith('.gz'):
+        return gzip.open(filename, mode)
+    return open(filename, mode)
 
 # specify project directories
 PROJECT_DIR = config["output_directory"]
@@ -38,7 +45,9 @@ rule all:
     input:
         expand(join(PROJECT_DIR, "02_assembly/03_athena/{sample}/athena_config.json"), sample=sample_list),
         expand(join(PROJECT_DIR, "02_assembly/03_athena/{sample}/athena_asm.fa"), sample=sample_list),
-        expand(join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/report.html"), sample=sample_list)
+        expand(join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/report.tsv"), sample=sample_list),
+        join(PROJECT_DIR, "02_assembly/03_athena/quast_report_merged.tsv")
+
 
 ################################################
 ##### ATHENA ASSEMBLY ##########################
@@ -56,9 +65,10 @@ rule interleave_reads:
     run: 
         # original author: SĂŠbastien Boisvert
         # part of Ray distribution
-        with open(input.fwd) as f1:
-            with open(input.rev) as f2:
-                with open(output.unsorted, 'w') as f3:
+
+        with _open(input.fwd) as f1:
+            with _open(input.rev) as f2:
+                with _open(output.unsorted, 'w') as f3:
                     while True:
                         line = f1.readline()
                         if line.strip() == "":
@@ -145,7 +155,7 @@ rule quast_athena:
     input:
         rules.athena_meta.output
     output:
-        join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/report.html")
+        join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/report.tsv")
     params:
         outdir = join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/")
     threads: 1
@@ -153,3 +163,13 @@ rule quast_athena:
     shell: """
         quast -o {params.outdir} {input} --threads {threads}
         """
+
+rule combine_quast_reports_R:
+    input:
+        expand(join(PROJECT_DIR, "02_assembly/03_athena/{sample}/quast/report.tsv"), sample=sample_list),
+    output:
+        join(PROJECT_DIR, "02_assembly/03_athena/quast_report_merged.tsv")
+    params:
+        sample_names = sample_list,
+        assembly_dir = join(PROJECT_DIR, "02_assembly/03_athena/")
+    script: "scripts/combine_quast_reports.R"

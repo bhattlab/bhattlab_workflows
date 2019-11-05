@@ -43,7 +43,9 @@ if 'spades' in assemblers:
 
 rule all:
     input:
-        outfiles_all
+        outfiles_all,
+        join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv")
+
     
 rule megahit:
     input: lambda wildcards: sample_dict[wildcards.sample]
@@ -118,3 +120,13 @@ rule quast_spades:
     shell: """
         quast.py -o {params.outdir} {input} --fast
         """
+
+rule combine_quast_reports_R:
+    input:
+        expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.tsv"), sample=sample_list),
+    output:
+        join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv")
+    params:
+        sample_names = sample_list,
+        assembly_dir = join(PROJECT_DIR, "02_assembly/02_metaspades/")
+    script: "scripts/combine_quast_reports.R"
