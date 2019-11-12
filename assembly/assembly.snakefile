@@ -27,9 +27,9 @@ if not ('megahit' in assemblers or 'spades' in assemblers):
 
 # define output files depending on which assemblers
 outfiles_megahit_assembly = expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/{sample}.contigs.fa"), sample=sample_list)
-outfiles_megahit_quast = expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/quast/report.txt"), sample=sample_list)
+outfiles_megahit_quast = expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/quast/report.tsv"), sample=sample_list)
 outfiles_spades_assembly = expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/contigs.fasta"), sample=sample_list)
-outfiles_spades_quast = expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.txt"), sample=sample_list)
+outfiles_spades_quast = expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.tsv"), sample=sample_list)
 
 outfiles_all = []
 if 'megahit' in assemblers:
@@ -39,6 +39,14 @@ if 'spades' in assemblers:
     outfiles_all.append(outfiles_spades_assembly)
     outfiles_all.append(outfiles_spades_quast)
 
+def get_reads_command(reads):
+    if len(reads) == 3: #paired plus orphans
+        return("-1 {0} -2 {1} -s {2}".format(reads[0], reads[1], reads[2]))
+    elif len(reads) == 2: #paired
+        return("-1 {0} -2 {1}".format(reads[0], reads[1]))
+    elif len(reads) == 1: #single-ended
+        return("-12 {0}".format(reads[0]))
+
 ################################################################################
 
 rule all:
@@ -46,7 +54,9 @@ rule all:
         outfiles_all,
         join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv")
 
-    
+################################################################################
+######## MEGAHIT ASSEMBLY ######################################################
+################################################################################
 rule megahit:
     input: lambda wildcards: sample_dict[wildcards.sample]
     output: join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/{sample}.contigs.fa")
@@ -68,26 +78,31 @@ rule megahit:
         shell("rm -r {params.outdir}")
         shell(cmd)
 
-
 rule quast_megahit:
     input:
         rules.megahit.output
     output:
-        join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast/report.txt")
+        join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast/report.tsv")
     singularity: "docker://quay.io/biocontainers/quast:5.0.2--py35pl526ha92aebf_0"
     params:
         outdir = join(PROJECT_DIR,"02_assembly/01_megahit/{sample}/quast")
     shell: """
         quast.py -o {params.outdir} {input} --fast
         """
-def get_reads_command(reads):
-    if len(reads) == 3: #paired plus orphans
-        return("-1 {0} -2 {1} -s {2}".format(reads[0], reads[1], reads[2]))
-    elif len(reads) == 2: #paired
-        return("-1 {0} -2 {1}".format(reads[0], reads[1]))
-    elif len(reads) == 1: #single-ended
-        return("-12 {0}".format(reads[0]))
 
+rule combine_megahit_quast_reports_R:
+    input:
+        expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/quast/report.tsv"), sample=sample_list),
+    output:
+        join(PROJECT_DIR, "02_assembly/01_megahit/quast_report_merged.tsv")
+    params:
+        sample_names = sample_list,
+        assembly_dir = join(PROJECT_DIR, "02_assembly/01_megahit/")
+    script: "scripts/combine_quast_reports.R"
+
+################################################################################
+######## SPADES ASSEMBLY #######################################################
+################################################################################
 rule spades:
     input: lambda wildcards: sample_dict[wildcards.sample]
     output: join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/contigs.fasta")
@@ -110,7 +125,7 @@ rule quast_spades:
     input:
         rules.spades.output
     output:
-        join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.txt")
+        join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.tsv")
     singularity: "docker://quay.io/biocontainers/quast:5.0.2--py35pl526ha92aebf_0"
     params:
         outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast")
@@ -121,7 +136,7 @@ rule quast_spades:
         quast.py -o {params.outdir} {input} --fast
         """
 
-rule combine_quast_reports_R:
+rule combine_spades_quast_reports_R:
     input:
         expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.tsv"), sample=sample_list),
     output:
@@ -130,3 +145,4 @@ rule combine_quast_reports_R:
         sample_names = sample_list,
         assembly_dir = join(PROJECT_DIR, "02_assembly/02_metaspades/")
     script: "scripts/combine_quast_reports.R"
+
