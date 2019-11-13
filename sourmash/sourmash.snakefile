@@ -1,6 +1,6 @@
 import re
 from os.path import join, abspath
-localrules: concat
+localrules: concat, plot_R_k21, plot_R_k31, plot_R_k51
 
 preprocessing_dir = config["preprocessing_directory"]
 outdir = config["output_directory"]
@@ -32,10 +32,9 @@ rule concat:
         orp = join(preprocessing_dir, "{sample}_orphans.fq.gz"),
     output:
         allreads = join(outdir, "01_concat_reads/{sample}_concat.fq")
-    shell:
-        """
+    shell: """
         zcat -f {input.fwd} {input.rev} {input.orp} > {output.allreads}
-        """
+    """
 
 rule trim_low_abund:
     input:
@@ -46,12 +45,12 @@ rule trim_low_abund:
         outdir=join(outdir, "02_trim_kmers")
     threads:1
     resources:
-        time=2
-    shell:
-        """
+        time=4
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         cd {params.outdir}
         trim-low-abund.py -C 3 -Z 18 -V -M 2e9 {input}
-        """
+    """
 
 rule compute:
     input:
@@ -61,11 +60,11 @@ rule compute:
     threads:1
     resources: 
         time=lambda wildcards, attempt: 12 * attempt,
-    shell:
-        """
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         sourmash compute --scaled 10000 \
         {input} -o {output} -k 21,31,51
-        """
+    """
 
 rule index:
     input:
@@ -80,13 +79,13 @@ rule index:
         outfolder_k51="k51",
         filestr="*.sig",
         outdir=join(outdir, "03_sourmash_signatures")
-    shell:
-        """
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         cd {params.outdir}
         sourmash index {params.outfolder_k21} {params.filestr} -k21
         sourmash index {params.outfolder_k31} {params.filestr} -k31
         sourmash index {params.outfolder_k51} {params.filestr} -k51
-        """
+    """
 
 rule compare_k21:
     input:
@@ -100,11 +99,11 @@ rule compare_k21:
     resources:
         time=6,
         mem=256
-    shell:
-        """
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k21} -k 21
-        """
+    """
 
 rule compare_k31:
     input:
@@ -118,11 +117,11 @@ rule compare_k31:
     resources:
         time=6,
         mem=256
-    shell:
-        """
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k31} -k 31
-        """
+    """
 
 rule compare_k51:
     input:
@@ -136,11 +135,11 @@ rule compare_k51:
     resources:
         time=6,
         mem=256
-    shell:
-        """
+    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k51} -k 51
-        """
+    """
 
 rule plot_R_k21:
     input:

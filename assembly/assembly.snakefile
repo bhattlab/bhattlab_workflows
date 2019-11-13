@@ -35,11 +35,14 @@ outfiles_all = []
 if 'megahit' in assemblers:
     outfiles_all.append(outfiles_megahit_assembly)
     outfiles_all.append(outfiles_megahit_quast)
+    outfiles_all.append(join(PROJECT_DIR, "02_assembly/01_megahit/quast_report_merged.tsv"))
 if 'spades' in assemblers:
     outfiles_all.append(outfiles_spades_assembly)
     outfiles_all.append(outfiles_spades_quast)
+    outfiles_all.append(join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv"))
 
-def get_reads_command(reads):
+# helper functions to build command for assembly so we can use singularity
+def get_spades_reads_command(reads):
     if len(reads) == 3: #paired plus orphans
         return("-1 {0} -2 {1} -s {2}".format(reads[0], reads[1], reads[2]))
     elif len(reads) == 2: #paired
@@ -47,12 +50,20 @@ def get_reads_command(reads):
     elif len(reads) == 1: #single-ended
         return("-12 {0}".format(reads[0]))
 
+def get_megahit_reads_command(reads):
+        if len(reads) == 3: #paired plus orphans
+            cmd = "-1 {0} -2 {1} -r {2}".format(reads[0], reads[1], reads[2])
+        elif len(reads) == 2: #paired
+            cmd = "-1 {0} -2 {1}".format(reads[0], reads[1])
+        elif len(reads) == 1: #single-ended
+            cmd = "--12 {0}".format(reads[0])
+        return(cmd)
+
 ################################################################################
 
 rule all:
     input:
-        outfiles_all,
-        join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv")
+        outfiles_all
 
 ################################################################################
 ######## MEGAHIT ASSEMBLY ######################################################
@@ -65,18 +76,14 @@ rule megahit:
         mem = lambda wildcards, attempt: 100 * attempt
     threads: 8
     params:
-        outdir = join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/")
-    run:
-        reads = sample_dict[wildcards.sample]
-        if len(reads) == 3: #paired plus orphans
-            cmd = "megahit -1 {reads[0]} -2 {reads[1]} -r {reads[2]}"
-        elif len(reads) == 2: #paired
-            cmd = "megahit -1 {reads[0]} -2 {reads[1]}"
-        elif len(reads) == 1: #single-ended
-            cmd = "megahit --12 {reads[0]}"
-        cmd += " -o {params.outdir} -t {threads} --out-prefix {wildcards.sample}"
-        shell("rm -r {params.outdir}")
-        shell(cmd)
+        outdir = join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/"),
+        reads_command = lambda wildcards: get_megahit_reads_command(sample_dict[wildcards.sample])
+
+    singularity: "docker://quay.io/biocontainers/megahit:1.2.9--h8b12597_0"
+    shell: """
+        rm -rf {params.outdir}
+        megahit {params.reads_command} -o {params.outdir} -t {threads} --out-prefix {wildcards.sample}
+    """
 
 rule quast_megahit:
     input:
@@ -113,10 +120,9 @@ rule spades:
     singularity: "docker://quay.io/biocontainers/spades:3.13.1--h2d02072_2"
     params:
         outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/"),
-        reads_command = lambda wildcards: get_reads_command(sample_dict[wildcards.sample])
+        reads_command = lambda wildcards: get_spades_reads_command(sample_dict[wildcards.sample])
     shell: """
-        spades.py --meta {params.reads_command}  -o {params.outdir} -m {resources.mem} -t {threads}
-
+        spades.py --meta {params.reads_command} -o {params.outdir} -m {resources.mem} -t {threads}
     """
 # cmd += " -o {params.outdir} -m {resources.mem} -t {threads} --only-assembler"
 # add in --only-assembler if spades gets stuck on read error correction
