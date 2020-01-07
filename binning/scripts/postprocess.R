@@ -48,7 +48,7 @@ quast.df <- as.data.frame(t(quast.df))
 rownames(quast.df) <- bins
 
 # process checkm
-checkm.df <- read.table(checkm.files[1], sep='\t', fill=T, comment.char = '', header=T)
+checkm.df <- read.table(checkm.files[1], sep='\t', fill=T, comment.char = '', header=T, quote = '')
 rownames(checkm.df) <- checkm.df$Bin.Id
 
 # process trna
@@ -81,7 +81,7 @@ for (b in bins){
 }
 
 # process classify
-classify.df <- read.table(classify.files[1], sep='\t', header=T)
+classify.df <- read.table(classify.files[1], sep='\t', header=T, quote = '')
 classify.df$Bin <- gsub('.fa', '', classify.df$Bin)
 rownames(classify.df) <- classify.df$Bin
 
@@ -89,7 +89,7 @@ rownames(classify.df) <- classify.df$Bin
 coverage.list <- list()
 for (b in bins){
   f <- coverage.files[b]
-  df <- read.table(f, sep='\t')
+  df <- read.table(f, sep='\t', quote = '')
   coverage.list[[b]] <- as.character(df[1,])
   
 }
