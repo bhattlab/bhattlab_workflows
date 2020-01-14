@@ -1,5 +1,5 @@
 ## Preprocessing
-*NEW 2020-01-14* 
+**NEW 2020-01-14**
 The preprocessing pipeline has been reworked significantly! _hts\_SuperDeduper_ is used to do deduplication in one pass, which happens before trimming. And now that I know about the `-s` argument to `samtools fastq`, there's no longer _any_ syncing needed! Benchmarking has also been added to each step.
 
 Preprocessing raw metagenomic data is necessary before any other application. Our preprocessing pipeline does the following tasks:
@@ -19,7 +19,7 @@ snakemake -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile
 --use-singularity \
 --singularity-args '--bind /labs,/oak,/home'
 ```
-*Important* after running the pipeline, run the cleanup rule in the snakefile. This will delete all the unnecessary fastq files and save us space on SCG! 
+**Important** after running the pipeline, run the cleanup rule in the snakefile. This will delete all the unnecessary fastq files and save us space on SCG! 
 ```
 snakemake cleanup \
 -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
