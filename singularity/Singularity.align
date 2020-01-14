@@ -10,7 +10,7 @@ from: ubuntu:19.04
     PATH="/usr/local/anaconda/bin:$PATH"
 %post
     apt-get update
-		apt-get install -y wget bzip2 \
+        apt-get install -y wget bzip2 \
       ca-certificates
     apt-get clean
 
@@ -21,12 +21,11 @@ from: ubuntu:19.04
          bash ~/anaconda.sh -b -p /usr/local/anaconda && \
          rm ~/anaconda.sh
     fi
-		export PATH="/usr/local/anaconda/bin:$PATH"
+        export PATH="/usr/local/anaconda/bin:$PATH"
 
-		conda config --set remote_read_timeout_secs 600
+        conda config --set remote_read_timeout_secs 600
 
 
-		#install plotting stuff
 
-		 conda install -y -c conda-forge -c bioconda \
-		 bwa samtools
+     conda install -y -c conda-forge -c bioconda -c anaconda \
+     bwa samtools pigz 
