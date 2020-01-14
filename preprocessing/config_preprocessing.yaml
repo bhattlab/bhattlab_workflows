@@ -7,9 +7,9 @@ extension: .fastq.gz # or .fastq.gz (should be gzipped regardless) - must includ
 # specify parameters for TrimGalore -- automatically chcecks the adaptor type
 trim_galore:
   quality:  30
-  start_trim: 15
-  end_trim: 0
   min_read_length: 60
+  start_trim: 0
+  end_trim: 0
 
 rm_host_reads:
   host_genome: /path/to/bwa/index/ref.fa

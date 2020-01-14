@@ -1,20 +1,30 @@
-
 ## Preprocessing
+*NEW 2020-01-14* 
+The preprocessing pipeline has been reworked significantly! _hts\_SuperDeduper_ is used to do deduplication in one pass, which happens before trimming. And now that I know about the `-s` argument to `samtools fastq`, there's no longer _any_ syncing needed! Benchmarking has also been added to each step.
 
 Preprocessing raw metagenomic data is necessary before any other application. Our preprocessing pipeline does the following tasks:
 
  0. Initial quality control check 
- 1. Trimming of low quality bases and discarding of reads that fall below a length limit
- 2. Deduplicaiton of exactly matching sequencing reads
+ 1. Deduplicaiton of exactly matching sequencing reads - PCR artifacts
+ 2. Trimming of low quality bases and discarding of reads that fall below a length limit
  3. Removal of reads that align against the host genome
  4. Final quality control check
 
-To use this pipeline, copy `preprocessing/config_preprocessing.yaml` to your working directory and edit the options to match your project. The workflow is run with the first snakemake command below.
+To use this pipeline, copy `preprocessing/config_preprocessing.yaml` to your working directory and edit the options to match your project. Assuming you have this github cloned into a directory called `~/projects`, The workflow can be run with a snakemake like this. You must set up the (scg cookiecutter)[https://github.com/bhattlab/slurm] profile to use the `--profile scg` option to submit batch jobs to the SLURM cluster. 
 ```
-snakemake --configfile config_preprocessing.yaml \
---snakefile ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
---profile scg --jobs 100 --use-singularity \
---singularity-args '--bind /labs/  --bind /home/'
+snakemake -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
+--configfile config_preprocessing.yaml \
+--profile scg \
+--jobs 100 \
+--use-singularity \
+--singularity-args '--bind /labs,/oak,/home'
+```
+*Important* after running the pipeline, run the cleanup rule in the snakefile. This will delete all the unnecessary fastq files and save us space on SCG! 
+```
+snakemake cleanup \
+-s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
+--configfile config_preprocessing.yaml
+
 ```
 
 ### Change configfile options
@@ -23,6 +33,7 @@ snakemake --configfile config_preprocessing.yaml \
 3. How paired end reads are specified (read_specification)
 4. Read file extension (extension)
 5. Path for the host reference genome (host_genome)
+6. Quality trimming settings (should be fine as is)
 
 
 *This program runs under the assumption samples are named <sample_id>\_[R]1.fastq[fq].gz and <sample_id>\_[R]2.fastq[fq].gz.* The R1/R2 and suffix must be specified in the config.
@@ -30,14 +41,12 @@ snakemake --configfile config_preprocessing.yaml \
 **This script will create the following folders:**
 - PROJECT_DIR/01_processing/00_qc_reports/pre_fastqc
 - PROJECT_DIR/01_processing/00_qc_reports/post_fastqc
-- PROJECT_DIR/01_processing/01_trimmed
-- PROJECT_DIR/01_processing/02_dereplicate
-- PROJECT_DIR/01_processing/03_sync
-- PROJECT_DIR/01_processing/04_host_align
+- PROJECT_DIR/01_processing/01_dedup
+- PROJECT_DIR/01_processing/02_trimmed
 - PROJECT_DIR/01_processing/05_sync
+_The 03_sync and 04_host_align folder have been removed because of improvements in the pipeline, but the numbering convention has not changed to keep consistency with older versions_ 
 
-
-The files that can then be used in downstream analyses will be in PROJECT_DIR/01_processing/05_sync/ as {sample}\_1.fq, {sample}\_2.fq, {sample}\_orphans.fq
+The files that can then be used in downstream analyses will be in PROJECT_DIR/01_processing/05_sync/ as {sample}\_1.fq.gz, {sample}\_2.fq.gz, {sample}\_orphans.fq.gz
 
 ### Examine your output!
 Check to make sure your data is high quality after running this pipeline! View the multiqc reports for a good overview of quality. Are there any problems indicated? Did adapter sequence contamination get removed from pre to post? Also check the `01_processing/readcounts.pdf` and `01_processing/readcounts.tsv` file for the number of sequencing reads that were kept/discarded at each step. This is helpful for diagnosing problems with data.
@@ -67,6 +76,3 @@ Create bowtie index
 ```
 bwa index hg19.fa
 ```
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbLTEyODI3MTExNzYsNjQ4MTcwODA2XX0=
--->
