@@ -179,7 +179,7 @@ rule rm_host_reads:
         mem_mb=32000,
         mem=32,
         time=24
-    singularity: "shub://bhattlab/bhattlab_workflows:align"
+    singularity: "shub://bsiranosian/bens_1337_workflows:align"
     # conda: "envs/align.yaml"
     benchmark: join(PROJECT_DIR, "01_processing/04_host_align/{sample}_time.txt")
     shell: """
@@ -192,8 +192,7 @@ rule rm_host_reads:
         bwa mem -t {threads} {params.bwa_index_base} {input.orp} | \
             samtools fastq -@ {threads} -t -T BX -f 4 - > {params.singelton_temp_2}
         # combine singletons 
-        zcat -f {params.singelton_temp_1} {params.singelton_temp_2} | gzip > {output.unmapped_singletons}
-        # zcat -f {params.singelton_temp_1} {params.singelton_temp_2} | pigz -p {threads} > {output.unmapped_singletons}
+        zcat -f {params.singelton_temp_1} {params.singelton_temp_2} | pigz -p {threads} > {output.unmapped_singletons}
         rm {params.singelton_temp_1} {params.singelton_temp_2}
     """
 

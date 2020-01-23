@@ -10,10 +10,12 @@ outf <- snakemake@output[[1]]
 
 readcounts <- read.table(inf, sep='\t', quote='', header=T)
 readcounts$raw_frac <- 1.0
-readcounts.melt.count <- melt(readcounts[,c('Sample', 'raw_reads', 'trimmed_reads',
-                                            'deduplicated_reads', 'host_removed_reads')], id.vars = 'Sample') 
-readcounts.melt.frac <- melt(readcounts[,c('Sample', 'raw_frac', 'trimmed_frac',
-                                            'deduplicated_frac', 'host_removed_frac')], id.vars = 'Sample') 
+readcounts.melt.count <- melt(readcounts[,c('Sample', 'raw_reads', 
+                                            'dedup_reads', 'trimmed_reads', 
+                                            'host_removed_reads')], id.vars = 'Sample') 
+readcounts.melt.frac <- melt(readcounts[,c('Sample', 'raw_frac',
+                                            'dedup_frac', 'trimmed_frac',
+                                            'host_removed_frac')], id.vars = 'Sample') 
 
 
 g.count <- ggplot(readcounts.melt.count, aes(x=Sample, y=value, fill=variable)) + 
