@@ -10,7 +10,7 @@ Preprocessing raw metagenomic data is necessary before any other application. Ou
  3. Removal of reads that align against the host genome
  4. Final quality control check
 
-To use this pipeline, copy `preprocessing/config_preprocessing.yaml` to your working directory and edit the options to match your project. Assuming you have this github cloned into a directory called `~/projects`, The workflow can be run with a snakemake like this. You must set up the (scg cookiecutter)[https://github.com/bhattlab/slurm] profile to use the `--profile scg` option to submit batch jobs to the SLURM cluster. 
+To use this pipeline, copy `preprocessing/config_preprocessing.yaml` to your working directory and edit the options to match your project. Assuming you have this github cloned into a directory called `~/projects`, The workflow can be run with a snakemake like this. You must set up the [scg cookiecutter](https://github.com/bhattlab/slurm) profile to use the `--profile scg` option to submit batch jobs to the SLURM cluster. 
 ```
 snakemake -s ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
 --configfile config_preprocessing.yaml \
