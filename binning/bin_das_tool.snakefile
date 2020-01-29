@@ -133,7 +133,6 @@ rule bwa_align:
         bwa mem -t {threads} {input.asm}  {input.reads} |samtools sort --threads {threads} > {output}
         """
 
-# Align long reads (not sure if I should keep this)
 rule align_lr:
     input:
         join(outdir, "{samp}/idx/{samp}.fa"),
@@ -160,7 +159,7 @@ rule metabat_pre:
         single = join(outdir, "{samp}/{samp}.fa.depth.txt"),
         paired = join(outdir, "{samp}/{samp}.fa.paired.txt"),
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     shell: """
         jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {output.paired} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
         """
@@ -177,7 +176,7 @@ checkpoint metabat:
     output:
         directory(join(outdir, "{samp}/metabat/bins/")) #the number of bins is unknown prior to execution
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     resources:
         mem=64,
         time=24
@@ -197,7 +196,7 @@ checkpoint maxbin:
     output:
         directory(join(outdir, "{samp}/maxbin/bins"))
     singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+        "docker://quay.io/biocontainers/maxbin2:2.2.7--he1b5a44_1"
     params:
         outfolder="{samp}/maxbin/"
     resources:
@@ -329,7 +328,7 @@ rule DAStool:
     output: 
         join(outdir, "{samp}/DAS_tool/completed.txt")
     singularity:
-        "shub://ambenj/bin_das_tool:dastool"
+        "docker://quay.io/biocontainers/das_tool:1.1.2--r36_0"
     params:
         outfolder = join(outdir, "{samp}/DAS_tool"),
         outfolder_fourmethods = join(outdir, "{samp}/DAS_tool/fourmethods"),
@@ -623,7 +622,8 @@ rule bin_coverage:
         mem = 2,
         time = 1
     params:
-        read_length = config['read_length']
+        read_length = config['read_length'],
+        sample = lambda wildcards: wildcards.sample
     script:
         "scripts/bin_coverage.py"
 
@@ -685,13 +685,13 @@ rule label_bins:
 
 rule postprocess:
     input:
-        prokka = lambda wildcards: expand(join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff"), bin = get_bins(wildcards), samp = wildcards.samp),
-        quast = lambda wildcards: expand(join(outdir, "{samp}/quast/{bin}.fa/report.tsv"), bin = get_bins(wildcards), samp = wildcards.samp),
-        checkm = join(outdir, "{samp}/checkm/checkm.tsv"),
-        trna = lambda wildcards: expand(join(outdir, "{samp}/rna/trna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
-        rrna = lambda wildcards: expand(join(outdir, "{samp}/rna/rrna/{bin}.fa.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
+        prokka = lambda wildcards: expand(join(outdir, "{samp}/prokka/{bin}.fa/{samp}_{bin}.fa.gff"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        quast = lambda wildcards: expand(join(outdir, "{samp}/quast/{bin}.fa/report.tsv"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        checkm = join(outdir, "{samp}/DAS_tool/checkm/checkm.tsv"),
+        trna = lambda wildcards: expand(join(outdir, "{samp}/rna/trna/{bin}.fa.txt"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
+        rrna = lambda wildcards: expand(join(outdir, "{samp}/rna/rrna/{bin}.fa.txt"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
         classify = rules.label_bins.output,
-        coverage = lambda wildcards: expand(join(outdir, "{samp}/coverage/{bin}.txt"), bin = get_bins(wildcards), samp = wildcards.samp),
+        coverage = lambda wildcards: expand(join(outdir, "{samp}/coverage/{bin}.txt"), bin = get_DAStool_bins(wildcards), samp = wildcards.samp),
     output:
         full = join(outdir, "{samp}/final/{samp}.tsv"),
         simple = join(outdir, "{samp}/final/{samp}_simple.tsv")

@@ -40,6 +40,7 @@ rule all:
         reads,
         assembly,
         kraken2db,
+        expand(join(outdir, "{samp}/idx/{samp}.fa"), samp = samp),
         expand(join(outdir, "{samp}/classify/bin_species_calls.tsv"), samp = samp),
         expand(join(outdir, "{samp}/final/{samp}.tsv"), samp = samp),
         expand(join(outdir, "{samp}/final/{samp}_simple.tsv"), samp = samp),
@@ -123,7 +124,7 @@ rule metabat_pre:
     params:
         paired_out = join(outdir, "{samp}/{samp}.fa.paired.txt")
     singularity:
-        "shub://bsiranosian/bens_1337_workflows:binning"
+        "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     shell: """
         jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {params.paired_out} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
         """
@@ -137,7 +138,7 @@ checkpoint metabat:
     log:
         join(outdir, "{samp}/logs/metabat.log")
     singularity:
-        "shub://bsiranosian/bens_1337_workflows:binning"
+        "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     resources:
         mem = 64,
         time = 24

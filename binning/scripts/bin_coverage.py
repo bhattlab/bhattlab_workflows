@@ -4,7 +4,7 @@ read_length = int(snakemake.params['read_length'])
 idxstats = snakemake.input[0]
 output = snakemake.output[0]
 bin = snakemake.wildcards['bin']
-samp = snakemake.wildcards['samp']
+samp = snakemake.params['sample']
 
 with open(idxstats, 'r') as statsf:
 	stats = [l.strip().split("\t") for l in statsf.readlines()]

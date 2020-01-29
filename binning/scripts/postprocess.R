@@ -111,11 +111,50 @@ out.df$Coverage <- coverage.df[bins, 'Coverage']
 out.df[is.na(out.df)] <- 0
 out.df <- out.df[order(out.df$Bin),]
 
-simple.columns <- c("Sample", "Bin", "lca_species", "lca_level", 
+# set fields as numeric for calculating quality
+out.df$Completeness <- as.numeric(out.df$Completeness)
+out.df$Contamination <- as.numeric(out.df$Contamination)
+out.df$N50 <- as.numeric(out.df$N50)
+out.df[,'# contigs (>= 0 bp)'] <- as.numeric(out.df[,'# contigs (>= 0 bp)'])
+out.df$Coverage <- round(as.numeric(out.df$Coverage), 2)
+out.df$tRNA <- round(as.numeric(out.df$tRNA), 2)
+out.df$rna.16S <- round(as.numeric(out.df$rna.16S), 2)
+out.df$rna.23S <- round(as.numeric(out.df$rna.23S), 2)
+out.df$rna.5S <- round(as.numeric(out.df$rna.5S), 2)
+# implement some quality calls and standards in this 
+out.df$bin.quality.numeric <- round(out.df$Completeness - (5* out.df$Contamination),2) 
+# different quality thresholds
+out.df$low.quality <- out.df$Completeness < 50 & out.df$Contamination <10
+out.df$med.quality <- out.df$Completeness >= 50 & out.df$Contamination <10
+out.df$high.quality.nayfach <- out.df$Completeness >= 90 & 
+                               out.df$Contamination <= 5 & 
+                               out.df$N50 >=10000 & 
+                               out.df[,'# contigs (>= 0 bp)'] <= 500 &
+                               out.df$Coverage >=5
+out.df$high.quality.bowers <- out.df$Completeness >= 90 & 
+                              out.df$Contamination <= 5 & 
+                              out.df$tRNA >= 18 & 
+                              out.df$rna.16S >= 18 & 
+                              out.df$rna.23S >= 18 & 
+                              out.df$rna.5S >= 18
+# ensure low quality is on evrything with higher quality
+out.df[out.df$med.quality, 'low.quality'] <- TRUE
+quality.map <- c('0) really bad', '1) low quality', '2) medium quality', '3) high quality Nayfach', '4) high quality Bowers')
+out.df$bin.quality.call <- quality.map[rowSums(out.df[, c('low.quality', 'med.quality', 'high.quality.nayfach', 'high.quality.nayfach')])+1]
+
+new.col.order <- c("Sample", "Bin", "bin.quality.numeric", "bin.quality.call", "Completeness", 
+                    "Contamination", "Strain.heterogeneity", "lca_species", "lca_level", 
                     "lca_fraction", "best_species", "best_level", 
-                    "best_fraction", "Size.Mb", "Coverage", "Completeness", 
-                    "Contamination", "Strain.heterogeneity", "# contigs (>= 0 bp)", 
-                    "Largest contig", "N50", "N75")
+                    "best_fraction", "N50", "Size.Mb", "Coverage", "# contigs (>= 0 bp)", 
+                    "Largest contig", "Genes", "tRNA", "rna.16S", "rna.23S", "rna.5S",
+                    "low.quality", "med.quality", "high.quality.nayfach", "high.quality.bowers",
+                    "# contigs (>= 10000 bp)","# contigs (>= 50000 bp)","# contigs (>= 100000 bp)","# contigs (>= 250000 bp)","# contigs (>= 500000 bp)","# contigs (>= 1000000 bp)","# contigs (>= 2000000 bp)","# contigs (>= 3000000 bp)",
+                    "Total length (>= 0 bp)","Total length (>= 10000 bp)","Total length (>= 50000 bp)","Total length (>= 100000 bp)","Total length (>= 250000 bp)","Total length (>= 500000 bp)","Total length (>= 1000000 bp)","Total length (>= 2000000 bp)","Total length (>= 3000000 bp)",
+                    "# contigs","Total length",
+                    "N75","L50","L75","# N's per 100 kbp","Marker.lineage","X..genomes","X..markers","X..marker.sets","X0","X1","X2","X3","X4","X5."
+                    )
+out.df <- out.df[, new.col.order]
+simple.columns <- new.col.order[1:23]
 out.df.simple <- out.df[,simple.columns]
 
 write.table(out.df, snakemake@output[["full"]], sep = "\t", quote = F, row.names = F)
