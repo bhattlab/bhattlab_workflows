@@ -322,7 +322,8 @@ rule bin_coverage:
         mem = 2,
         time = 1
     params:
-        read_length = config['read_length']
+        read_length = config['read_length'],
+	sample = lambda wildcards: wildcards.samp
     script: "scripts/bin_coverage.py"
 
 rule fasta_index:
