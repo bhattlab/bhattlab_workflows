@@ -134,9 +134,9 @@ out.df$high.quality.nayfach <- out.df$Completeness >= 90 &
 out.df$high.quality.bowers <- out.df$Completeness >= 90 & 
                               out.df$Contamination <= 5 & 
                               out.df$tRNA >= 18 & 
-                              out.df$rna.16S >= 18 & 
-                              out.df$rna.23S >= 18 & 
-                              out.df$rna.5S >= 18
+                              out.df$rna.16S >= 1 & 
+                              out.df$rna.23S >= 1 & 
+                              out.df$rna.5S >= 1
 # ensure low quality is on evrything with higher quality
 out.df[out.df$med.quality, 'low.quality'] <- TRUE
 quality.map <- c('0) really bad', '1) low quality', '2) medium quality', '3) high quality Nayfach', '4) high quality Bowers')
