@@ -140,7 +140,7 @@ out.df$high.quality.bowers <- out.df$Completeness >= 90 &
 # ensure low quality is on evrything with higher quality
 out.df[out.df$med.quality, 'low.quality'] <- TRUE
 quality.map <- c('0) really bad', '1) low quality', '2) medium quality', '3) high quality Nayfach', '4) high quality Bowers')
-out.df$bin.quality.call <- quality.map[rowSums(out.df[, c('low.quality', 'med.quality', 'high.quality.nayfach', 'high.quality.nayfach')])+1]
+out.df$bin.quality.call <- quality.map[rowSums(out.df[, c('low.quality', 'med.quality', 'high.quality.nayfach', 'high.quality.bowers')])+1]
 
 new.col.order <- c("Sample", "Bin", "bin.quality.numeric", "bin.quality.call", "Completeness", 
                     "Contamination", "Strain.heterogeneity", "lca_species", "lca_level", 

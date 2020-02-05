@@ -29,7 +29,7 @@ from: ubuntu:19.04
 		#install plotting stuff
 
 		 conda install -y -c conda-forge -c bioconda -c r \
-       r r-ggplot2 r-reshape2 r-rcolorbrewer \
+       r r-ggplot2 r-reshape2 r-rcolorbrewer r-gplots r-viridis \
 			 readline=6.2
 
 
