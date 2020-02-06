@@ -395,6 +395,8 @@ rule postprocess:
     params:
         bins = lambda wildcards: get_bins(wildcards),
         sample = samp
+    singularity:
+        "shub://bsiranosian/bens_1337_workflows:binning"
     script: "scripts/postprocess.R"
 
 # rule bin_tig_mapping:
