@@ -153,7 +153,14 @@ checkpoint metabat:
         if [ $(ls {output} | wc -l ) == "0" ]; then
             cp {params.orig_fa} {params.outfolder}/bin.unbinned.fa
         fi
-
+        # check for bin.tooShort.fa thats empty
+        if [ -f {output}/bin.tooShort.fa ]; then
+            echo "Found bin.tooShort.fa"
+            if [ $(cat {output}/bin.tooShort.fa | wc -l ) == "0" ]; then
+                echo "Removing bin.tooShort.fa"
+                rm {output}/bin.tooShort.fa
+            fi
+        fi
         """
 
 rule checkm:
