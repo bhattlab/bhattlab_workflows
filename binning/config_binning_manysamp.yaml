@@ -1,0 +1,14 @@
+# base output directory. Will create direcrorties within for each sample you do this for
+outdir_base: binning_das_tool 
+# sample file: three column tsv, with paired end reads specified with commas
+# SAMPLE_NAME    ASSEMBLY   READS1,READS2
+sample_file: binning_input.txt
+# mean read length
+read_length: 150
+# kraken2 database to use for classification
+# do not change this in most cases
+kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_jan2020/refseq/
+# are we using a non-standard (non ncbi) taxonomy
+custom_taxonomy: False
+# Working with long reads from Nanopore? Only implemented in the metabat Snakefile for now  
+long_read: False
