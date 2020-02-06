@@ -80,6 +80,7 @@ def get_DAStool_bins(wildcards):
 rule all:
     input:
         config['kraken2db'],
+        expand(join(outdir, "{sample}/idx/{sample}.fa.amb"), sample = sample_list),
         # checkm - not necessary to run for all binners
         # expand(join(outdir, "{sample}/metabat/checkm/checkm.tsv"), sample = config['sample']),
         # expand(join(outdir, "{sample}/maxbin/checkm/checkm.tsv"), sample = config['sample']),
@@ -152,8 +153,25 @@ rule bwa_align:
     threads: 8
     shell: """
         bwa mem -t {threads} {input.asm} {input.fwd} {input.rev} | samtools sort --threads {threads} > {output}
-        samtools index {output}
         """
+
+# Index bam file to prepare for bamidx
+rule bam_idx:
+    input:
+        join(outdir, "{sample}/{sample}_lr.bam") if long_read else join(outdir, "{sample}/{sample}.bam") #choose a long read alignment or short read alignment
+    output:
+        join(outdir, "{sample}/{sample}_lr.bam.bai") if long_read else join(outdir, "{sample}/{sample}.bam.bai") #choose a long read alignment or short read alignment
+    log:
+        join(outdir, "{sample}/logs/bamidx.log")
+    singularity:
+        "shub://bsiranosian/bin_genomes:binning"
+    threads: 8
+    resources:
+        mem = 4,
+        time = 1
+    shell:
+        "samtools index -@ {threads} {input}"
+        
 '''
 rule align_lr:
     input:
@@ -214,8 +232,6 @@ checkpoint metabat:
 checkpoint maxbin:
     input:
         contigs = join(outdir, "{sample}/idx/{sample}.fa"),
-        fwd = lambda wildcards: sample_reads[wildcards.sample][0],
-        rev = lambda wildcards: sample_reads[wildcards.sample][1],
         depth = rules.metabat_pre.output.single
     output:
         directory(join(outdir, "{sample}/maxbin/bins"))
@@ -223,7 +239,8 @@ checkpoint maxbin:
         "docker://quay.io/biocontainers/maxbin2:2.2.7--he1b5a44_1"
     params:
         outfolder = join(outdir, "{sample}/maxbin/"),
-        abunance_file = join(outdir, "{sample}/maxbin/{sample}_maxbin_depth.txt")
+        logfile = join(outdir, "{sample}/maxbin/maxbin.log"),
+        abundance_file = join(outdir, "{sample}/maxbin/{sample}_maxbin_depth.txt")
     resources:
         time=lambda wildcards, attempt: attempt * 2
     threads: 8
@@ -235,9 +252,21 @@ checkpoint maxbin:
         # create abundance file, which we already have from the metabat rule
         cut -f 1,4 {input.depth} | tail -n +2 > {params.abundance_file}
         run_MaxBin.pl -contig {input.contigs} -out maxbin \
-        -abund {params.abundance_file} -thread {threads}
-        mkdir bins/
-        mv *.fasta bins/
+        -abund {params.abundance_file} -thread {threads} || true
+        
+        # look in log  if dataset cant be binned, just copy contigs over
+        if $(grep -q "cannot be binned" {params.logfile}); then
+            echo 'DATASET CANNOT BE BINNED'
+            mkdir {params.outfolder}/bins/
+            cp {input.contigs} {params.outfolder}/bins/maxbin.unbinned.fasta
+        elif ls {params.outfolder}/*.fasta 1> /dev/null 2>&1; then
+            echo "FOUND BINS"
+            mkdir {params.outfolder}/bins/
+            mv {params.outfolder}/*.fasta {params.outfolder}/bins/
+        else 
+            echo "PROGRAM MUST HAVE FAILED"
+            exit 1
+        fi
         """
 
 # Run myCC binner
@@ -283,7 +312,8 @@ rule concoct_cut:
 rule concoct_coverage:
     input:
         bedfile = rules.concoct_cut.output.bedfile,
-        bam = rules.bwa_align.output
+        bam = rules.bwa_align.output,
+        bam_bai = rules.bam_idx.output
     output:
         join(outdir, '{sample}/{sample}_coverage_table.tsv')
     resources:
@@ -351,7 +381,7 @@ rule DAStool:
     input:
         lambda wildcards: expand(join(outdir, "{sample}/metabat/bins/{metabat_bin}.fa"), metabat_bin = get_metabat_bins(wildcards), sample = wildcards.sample),
         lambda wildcards: expand(join(outdir, "{sample}/maxbin/bins/{maxbin_bin}.fasta"), maxbin_bin = get_maxbin_bins(wildcards), sample = wildcards.sample),
-        lambda wildcards: expand(join(outdir, "{sample}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), sample = wildcards.sample),
+        # lambda wildcards: expand(join(outdir, "{sample}/mycc/bins/{mycc_bin}.fasta"), mycc_bin = get_mycc_bins(wildcards), sample = wildcards.sample),
         lambda wildcards: expand(join(outdir, "{sample}/concoct/bins/{mycc_bin}.fasta"), mycc_bin = get_concoct_bins(wildcards), sample = wildcards.sample),
         contigs = join(outdir, "{sample}/idx/{sample}.fa"),
     output: 
@@ -360,8 +390,7 @@ rule DAStool:
         # "docker://quay.io/biocontainers/das_tool:1.1.1--py36r351_1"
     conda: "envs/das_tool.yaml"
     params:
-        outfolder = join(outdir, "{sample}/DAS_tool"),
-        outfolder_fourmethods = join(outdir, "{sample}/DAS_tool/fourmethods"),
+        outfolder = join(outdir, "{sample}/DAS_tool/"),
         metabat_dir = join(outdir, "{sample}/metabat/bins/"),
         maxbin_dir = join(outdir, "{sample}/maxbin/bins/"),
         mycc_dir = join(outdir, "{sample}/mycc/bins/"),
@@ -370,6 +399,7 @@ rule DAStool:
         maxbin_tsv = join(outdir, "{sample}/DAS_tool/maxbin_scaffold2bin.tsv"),
         mycc_tsv = join(outdir, "{sample}/DAS_tool/mycc_scaffold2bin.tsv"),
         concoct_tsv = join(outdir, "{sample}/DAS_tool/concoct_scaffold2bin.tsv"),
+        logfile = join(outdir, "{sample}/DAS_tool/_DASTool.log")
     threads: 8
     resources:
         time=lambda wildcards, attempt: attempt * 6
@@ -377,13 +407,25 @@ rule DAStool:
         # Prepare scaffold2bin file for each set of bins
         Fasta_to_Scaffolds2Bin.sh -e fa -i {params.metabat_dir} > {params.metabat_tsv}
         Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.maxbin_dir} > {params.maxbin_tsv}
-        Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.mycc_dir} > {params.mycc_tsv}
         Fasta_to_Scaffolds2Bin.sh -e fa -i {params.concoct_dir} > {params.concoct_tsv}
+        # Fasta_to_Scaffolds2Bin.sh -e fasta -i {params.mycc_dir} > {params.mycc_tsv}
         # Run DAS_Tool
-        DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.mycc_tsv},{params.concoct_tsv} \
-        -l metabat,maxbin,mycc,concoct -c {input.contigs} -o {params.outfolder_fourmethods} \
+        DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.concoct_tsv} \
+        -l metabat,maxbin,concoct -c {input.contigs} -o {params.outfolder} \
         --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
-        touch {output}
+
+        if $(grep -q "No bins with bin-score >0.5 found" {params.logfile}); then
+            echo 'DATASET CANNOT BE BINNED'
+            mkdir {params.outfolder}/_DASTool_bins
+            cp {input.contigs} {params.outfolder}/_DASTool_bins/unbinned.fa
+            touch {output}
+        elif ls {params.outfolder}/_DASTool_bins/*.fa 1> /dev/null 2>&1; then
+            echo "FOUND BINS"
+            touch {output}
+        else 
+            echo "PROGRAM MUST HAVE FAILED"
+            exit 1
+        fi
         """
 
 # extract the bins as a separate rule to speed up execution
@@ -392,7 +434,7 @@ checkpoint extract_DAStool:
     output:
         directory(join(outdir, "{sample}/DAS_tool_bins"))
     params:
-        old_binfolder = join(outdir, "{sample}/DAS_tool/fourmethods_DASTool_bins"),
+        old_binfolder = join(outdir, "{sample}/DAS_tool/_DASTool_bins"),
         new_binfolder = join(outdir, "{sample}/DAS_tool_bins"),
     shell: """
         mkdir -p {params.new_binfolder}
@@ -579,7 +621,7 @@ rule prokka:
         prefix = "{sample}_{bin}.fa"
     shell: """
         # don't run this on unbinned contigs, takes forever
-        if [ {wildcards.bin} = "bin.unbinned.contigs" ]; then
+        if [[ {wildcards.bin} =~ "unbinned" ]]; then
             touch {output}
             touch {params.prokkafolder}/prokka_skipped.out
         else
@@ -587,22 +629,6 @@ rule prokka:
             --centre X --compliant --force --cpus {threads} --noanno
         fi
         """
-
-# Index bam file to prepare for bamidx
-rule bam_idx:
-    input:
-        join(outdir, "{sample}/{sample}_lr.bam") if long_read else join(outdir, "{sample}/{sample}.bam") #choose a long read alignment or short read alignment
-    output:
-        join(outdir, "{sample}/{sample}_lr.bam.bai") if long_read else join(outdir, "{sample}/{sample}.bam.bai") #choose a long read alignment or short read alignment
-    log:
-        join(outdir, "{sample}/logs/bamidx.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
-    resources:
-        mem = 2,
-        time = 2
-    shell:
-        "samtools index {input}"
 
 # Retrieve stats on mapping from whole metagenome sample
 rule bam_idxstats:
