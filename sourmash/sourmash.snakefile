@@ -148,7 +148,7 @@ rule plot_R_k21:
         join(outdir, "04_sourmash_compare/compare_k21_heatmap_complete.pdf")
     params:
         outdir = join(outdir, "04_sourmash_compare")
-    singularity: "shub://bhattlab/bens_1337_workflows:plotting"
+    singularity: "shub://bsiranosian/bens_1337_workflows:plotting"
     script: "scripts/heatmaps.R"
 
 rule plot_R_k31:
@@ -158,7 +158,7 @@ rule plot_R_k31:
         join(outdir, "04_sourmash_compare/compare_k31_heatmap_complete.pdf")
     params:
         outdir = join(outdir, "04_sourmash_compare")
-    singularity: "shub://bhattlab/bens_1337_workflows:plotting"
+    singularity: "shub://bsiranosian/bens_1337_workflows:plotting"
     script: "scripts/heatmaps.R"
 
 rule plot_R_k51:
@@ -168,6 +168,6 @@ rule plot_R_k51:
         join(outdir, "04_sourmash_compare/compare_k51_heatmap_complete.pdf")
     params:
         outdir = join(outdir, "04_sourmash_compare")
-    singularity: "shub://bhattlab/bens_1337_workflows:plotting"
+    singularity: "shub://bsiranosian/bens_1337_workflows:plotting"
     script: "scripts/heatmaps.R"
 
