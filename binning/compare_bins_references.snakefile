@@ -1,6 +1,7 @@
 from os.path import join, abspath, expanduser, exists
 import random
 import string
+import re
 # compare bins against reference collection, do dotplots and etc
 # takes in the end result of binnig 
 # and edits the output tables?
@@ -95,7 +96,7 @@ bin_location = bin_location_dict[binner_used]
 def get_bins(sample):
     print(sample)
     # remove unbinned
-    bins = [b for b in glob_wildcards(join(outdir, sample, bin_location, "{bin}.fa")).bin if b!='unbinned']
+    bins = [b for b in glob_wildcards(join(outdir, sample, bin_location, "{bin}.fa")).bin if not(re.match('.*unbinned.*', b))]
     return bins
 
 sample_bins = {s:get_bins(s) for s in sample_list}
