@@ -1,0 +1,4 @@
+# base output directory from binnnig. expects one folder for each sample
+outdir_base: .
+# sample file: one column, newline delimited for each sample
+sample_file: binning_input_1col.txt
