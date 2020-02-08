@@ -94,7 +94,9 @@ bin_location = bin_location_dict[binner_used]
 
 def get_bins(sample):
     print(sample)
-    return glob_wildcards(join(outdir, sample, bin_location, "{bin}.fa")).bin
+    # remove unbinned
+    bins = [b for b in glob_wildcards(join(outdir, sample, bin_location, "{bin}.fa")).bin if b!='unbinned']
+    return bins
 
 sample_bins = {s:get_bins(s) for s in sample_list}
 print(sample_bins)
@@ -204,7 +206,7 @@ rule nucmer_from_fastani:
                 file=$(echo $line | cut -f 2 -d " ")
                 filebase=$(basename "$file")
                 name=$(echo $line | cut -f 6 -d " " | cut -d "|" -f 1)
-                echo "$line"
+                # echo "$line"
                 echo starting: "$name"
                 echo file: "$file"
                 # if gzipped, unzip to tmp
