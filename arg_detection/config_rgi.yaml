@@ -1,0 +1,6 @@
+# configfile for RGI 
+# at least two columns, tab delimted
+# SAMPLE    ASSEMBLY
+sample_file: 'sample_assemblies.tsv'
+# output directory
+outdir_base: 'rgi'
