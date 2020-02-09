@@ -20,14 +20,5 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
 snakemake --configfile config_preprocessing.yaml \
 --snakefile ~/projects/bhattlab_workflows/preprocessing/preprocessing.snakefile \
 --profile scg --jobs 100 --use-singularity \
---singularity-args '--bind /labs/  --bind /home/'
+--singularity-args '--bind /labs/,/oak/,/home/'
 ```
-
-
-
-
-
-
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbMTY2NjI0NTQ3NF19
--->
