@@ -145,13 +145,11 @@ checkpoint metabat:
     threads: 4
     params:
         outstring = join(outdir, "{samp}/bins/bin"),
-        outfolder = join(outdir, "{samp}/bins/"),
-        orig_fa = join(outdir, "{samp}/idx/{samp}.fa")
     shell: """
         metabat2 --seed 1 -t {threads} --unbinned --inFile {input.asm} --outFile {params.outstring} --abdFile {input.depth}
         # if no bins produced, copy contigs to bin.unbinned
         if [ $(ls {output} | wc -l ) == "0" ]; then
-            cp {params.orig_fa} {params.outfolder}/bin.unbinned.fa
+            cp {input.asm} {output}/bin.unbinned.fa
         fi
         # check for bin.tooShort.fa thats empty
         if [ -f {output}/bin.tooShort.fa ]; then

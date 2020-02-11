@@ -1,4 +1,4 @@
-from os.path import join, abspath, expanduser
+from os.path import join, abspath, expanduser, exists
 localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins
 
 def get_sample_assemblies_reads(sample_file):
@@ -20,10 +20,10 @@ def get_sample_assemblies_reads(sample_file):
             # get read pairs and singles from read specification
             if (len(reads_split) == 3) or (len(reads_split) == 2):
                 sample_reads[sample] = reads_split[0:2]
-            else:
-                sys.exit('must be paired end reads')
+            elif len(reads_split)==1:
+                sample_reads[sample] = reads_split[0]
+                # sys.exit('must be paired end reads')
             sample_assemblies[sample] = assembly
-
     return sample_reads, sample_assemblies
 
 # Read in sample and outdir from config file
@@ -32,9 +32,6 @@ outdir = config['outdir_base']
 sample_reads, sample_assemblies = get_sample_assemblies_reads(sample_file)
 sample_list = list(sample_reads.keys())
 
-print(sample_list)
-print(sample_reads)
-print(sample_assemblies)
 
 # are we using a non-standard (non ncbi) taxonomy
 if 'custom_taxonomy' in config:
@@ -51,31 +48,47 @@ outdir = abspath(outdir)
 # Determine if long reads
 if 'long_read' in config and config['long_read']:
     long_read = True
-    sys.exit('Untested in this implementation')
+    print('#############################################')
+    print('Untested in this implementation')
+    print('#############################################')
 else:
     long_read = False
 
 
+# to speedup execution - remove samples that are done completely
+skip_finished = False
+if skip_finished:
+    # sample_reads_new = [s for s in sample_reads if (!(exists(join(outdir, s, "final" + s + ".tsv")))) ]
+    sample_list_new = [s for s in sample_list if not exists(join(outdir, s, "final", s + ".tsv")) ]
+    sample_list = sample_list_new
+
+print('##################################################################')
+print(' SAMPLE LIST ')
+print(sample_list)
+print('##################################################################')
+# print(sample_reads)
+# print(sample_assemblies)
+
 def get_metabat_bins(wildcards):
     outputs = checkpoints.metabat.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{metabat_bin}.fa")).metabat_bin
+    return glob_wildcards(join(outputs, "{metabat_bin}.fa")).metabat_bin
 
 def get_maxbin_bins(wildcards):
     outputs = checkpoints.maxbin.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{maxbin_bin}.fasta")).maxbin_bin
+    return glob_wildcards(join(outputs, "{maxbin_bin}.fasta")).maxbin_bin
 
 def get_mycc_bins(wildcards):
     outputs = checkpoints.mycc.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{mycc_bin}.fasta")).mycc_bin
+    return glob_wildcards(join(outputs, "{mycc_bin}.fasta")).mycc_bin
 
 def get_concoct_bins(wildcards):
     outputs = checkpoints.concoct_extract_bins.get(**wildcards).output[0]
-    return glob_wildcards(os.path.join(outputs, "{concoct_bin}.fasta")).concoct_bin
+    return glob_wildcards(join(outputs, "{concoct_bin}.fasta")).concoct_bin
 
 def get_DAStool_bins(wildcards):
     outputs = checkpoints.extract_DAStool.get(**wildcards).output[0]
-    # print(glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin)
-    return glob_wildcards(os.path.join(outputs, "{bin}.fa")).bin
+    # outputs = join(outdir, wildcards.sample, "DAS_tool_bins")
+    return glob_wildcards(join(outputs, "{bin}.fa")).bin
 
 rule all:
     input:
@@ -89,6 +102,7 @@ rule all:
         expand(join(outdir, "{sample}/classify/bin_species_calls.tsv"), sample = sample_list),
         expand(join(outdir, "{sample}/final/{sample}.tsv"), sample = sample_list),
         expand(join(outdir, "{sample}/final/{sample}_simple.tsv"), sample = sample_list),
+        join(outdir, "binning_table_all_full.tsv"),
 
 ##########################################
 ####### Prepping input for binning #######
@@ -133,8 +147,7 @@ rule bwa_index:
 # Align reads to assembly
 rule bwa_align:
     input:
-        fwd = lambda wildcards: sample_reads[wildcards.sample][0],
-        rev = lambda wildcards: sample_reads[wildcards.sample][1],
+        reads = lambda wildcards: sample_reads[wildcards.sample],
         asm = join(outdir, "{sample}/idx/{sample}.fa"),
         amb = join(outdir, "{sample}/idx/{sample}.fa.amb"),
         ann = join(outdir, "{sample}/idx/{sample}.fa.ann"),
@@ -152,7 +165,7 @@ rule bwa_align:
         time=12
     threads: 8
     shell: """
-        bwa mem -t {threads} {input.asm} {input.fwd} {input.rev} | samtools sort --threads {threads} > {output}
+        bwa mem -t {threads} {input.asm} {input.reads} | samtools sort --threads {threads} > {output}
         """
 
 # Index bam file to prepare for bamidx
@@ -172,11 +185,10 @@ rule bam_idx:
     shell:
         "samtools index -@ {threads} {input}"
         
-'''
 rule align_lr:
     input:
         join(outdir, "{sample}/idx/{sample}.fa"),
-        reads
+        reads = lambda wildcards: sample_reads[wildcards.sample]
     log:
         join(outdir, "{sample}/logs/align_lr.log")
     output:
@@ -190,7 +202,6 @@ rule align_lr:
     shell: """
         minimap2 -t {threads} -ax map-ont {input} | samtools sort --threads {threads} > {output}
         """
-'''
 
 # Generate a depth file from BAM file for MetaBat input
 rule metabat_pre:
@@ -208,14 +219,12 @@ rule metabat_pre:
 #####################################################
 ################ Binning methods ####################
 #####################################################
-
-# Run MetaBat binner
 checkpoint metabat:
     input:
         asm = join(outdir, "{sample}/idx/{sample}.fa"),
         depth = join(outdir, "{sample}/{sample}.fa.depth.txt"),
     output:
-        directory(join(outdir, "{sample}/metabat/bins/")) #the number of bins is unknown prior to execution
+        directory(join(outdir, "{sample}/metabat/bins/"))
     singularity:
         "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     resources:
@@ -226,9 +235,20 @@ checkpoint metabat:
         outstring = join(outdir, "{sample}/metabat/bins/bin")
     shell: """
         metabat2 --seed 1 -t {threads} --unbinned --inFile {input.asm} --outFile {params.outstring} --abdFile {input.depth}
+        # if no bins produced, copy contigs to bin.unbinned
+        if [ $(ls {output} | wc -l ) == "0" ]; then
+            cp {input.asm} {output}/bin.unbinned.fa
+
+        # check for bin.tooShort.fa thats empty
+        if [ -f {output}/bin.tooShort.fa ]; then
+            echo "Found bin.tooShort.fa"
+            if [ $(cat {output}/bin.tooShort.fa | wc -l ) == "0" ]; then
+                echo "Removing bin.tooShort.fa"
+                rm {output}/bin.tooShort.fa
+            fi
+        fi
         """
 
-# Run MaxBin2 binner
 checkpoint maxbin:
     input:
         contigs = join(outdir, "{sample}/idx/{sample}.fa"),
@@ -240,7 +260,7 @@ checkpoint maxbin:
     params:
         outfolder = join(outdir, "{sample}/maxbin/"),
         logfile = join(outdir, "{sample}/maxbin/maxbin.log"),
-        abundance_file = join(outdir, "{sample}/maxbin/{sample}_maxbin_depth.txt")
+        abundance_file = join(outdir, "{sample}/maxbin/{sample}_maxbin_depth.txt"),
     resources:
         time=lambda wildcards, attempt: attempt * 2
     threads: 8
@@ -265,11 +285,12 @@ checkpoint maxbin:
             mv {params.outfolder}/*.fasta {params.outfolder}/bins/
         else 
             echo "PROGRAM MUST HAVE FAILED"
+            echo $(ls {params.outfolder})
             exit 1
         fi
         """
 
-# Run myCC binner
+# MyCC not used for now
 checkpoint mycc:
     input:
         contigs = join(outdir, "{sample}/idx/{sample}.fa"),
@@ -293,7 +314,7 @@ checkpoint mycc:
         mv {params.outfolder}/*.fasta {params.outfolder_bins}
         """
 
-# Run concoct binner in multiple steps
+# Concoct run in multiple steps
 rule concoct_cut:
     input:
         join(outdir, "{sample}/idx/{sample}.fa"),
@@ -399,7 +420,7 @@ rule DAStool:
         maxbin_tsv = join(outdir, "{sample}/DAS_tool/maxbin_scaffold2bin.tsv"),
         mycc_tsv = join(outdir, "{sample}/DAS_tool/mycc_scaffold2bin.tsv"),
         concoct_tsv = join(outdir, "{sample}/DAS_tool/concoct_scaffold2bin.tsv"),
-        logfile = join(outdir, "{sample}/DAS_tool/_DASTool.log")
+        logfile = join(outdir, "{sample}/DAS_tool/_DASTool.log"),
     threads: 8
     resources:
         time=lambda wildcards, attempt: attempt * 6
@@ -412,9 +433,9 @@ rule DAStool:
         # Run DAS_Tool
         DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.concoct_tsv} \
         -l metabat,maxbin,concoct -c {input.contigs} -o {params.outfolder} \
-        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
+        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1 || true
 
-        if $(grep -q "No bins with bin-score >0.5 found" {params.logfile}); then
+        if $(grep -q "No bins with bin-score >0.5 found" {params.logfile}) || $(grep -q "single copy gene prediction using diamond failed" {params.logfile}); then
             echo 'DATASET CANNOT BE BINNED'
             mkdir {params.outfolder}/_DASTool_bins
             cp {input.contigs} {params.outfolder}/_DASTool_bins/unbinned.fa
@@ -423,7 +444,7 @@ rule DAStool:
             echo "FOUND BINS"
             touch {output}
         else 
-            echo "PROGRAM MUST HAVE FAILED"
+            echo "PROGRAM MUST HAVE FAILED IN SOME OTHER WAY"
             exit 1
         fi
         """
@@ -661,8 +682,9 @@ rule bin_idxstats:
     resources:
         mem = 2,
         time = 6
-    shell:
-        "grep '>' {input[0]} | tr -d '>' | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}"
+    shell: """
+        grep '>' {input[0]} | tr -d '>' | cut -f 1 -d " " | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}
+    """
 
 # Determine coverage for each bin
 rule bin_coverage:
@@ -753,5 +775,22 @@ rule postprocess:
         simple = join(outdir, "{sample}/final/{sample}_simple.tsv")
     params:
         bins = lambda wildcards: get_DAStool_bins(wildcards),
+        # bins = glob_wildcards(join(outdir, "{sample}/DAS_tool_bins", "{bin}.fa")).bin,
         sample = lambda wildcards: wildcards.sample
     script: "scripts/postprocess.R"
+
+rule combine_final_reports:
+    input:
+        all_full = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list),
+        single_full = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list[0]),
+        all_simple = expand(join(outdir, "{sample}/final/{sample}_simple.tsv"), sample=sample_list),
+        single_simple = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list[0]),
+    output:
+        full = join(outdir, "binning_table_all_full.tsv"),
+        simple = join(outdir, "binning_table_all_simple.tsv"),
+    shell: """
+        head -n 1 {input.single_full} > {output.full}
+        tail -n +2 -q {input.all_full} >> {output.full}
+        head -n 1 {input.single_simple} > {output.simple}
+        tail -n +2 -q {input.all_simple} >> {output.simple}
+    """

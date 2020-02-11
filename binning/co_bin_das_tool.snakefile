@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from os.path import join, abspath, expanduser
+from os.path import join, abspath, expanduser, exists
 import sys
 localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins
 
@@ -48,8 +48,6 @@ sample_file = config['sample_file']
 sample_reads, group_reads1, group_reads2, group_to_samples, group_assemblies = get_sample_group_reads(sample_file)
 group_list = list(group_to_samples.keys())
 sample_list = list(sample_reads.keys())
-print(group_list)
-print(group_to_samples)
 # convert outdir to absolute path
 if outdir[0] == '~':
     outdir = expanduser(outdir)
@@ -80,6 +78,18 @@ if 'long_read' in config and config['long_read']:
 else:
     long_read = False
 
+
+# to speedup execution - remove samples that are done completely
+skip_finished = True
+if skip_finished:
+    # sample_reads_new = [s for s in sample_reads if (!(exists(join(outdir, s, "final" + s + ".tsv")))) ]
+    group_list_new = [s for s in group_list if not exists(join(outdir, s, "final", s + ".tsv")) ]
+    group_list = group_list_new
+
+print('##################################################################')
+print(' GROUP LIST ')
+print(group_list)
+print('##################################################################')
 
 def get_metabat_bins(wildcards):
     outputs = checkpoints.metabat.get(**wildcards).output[0]
@@ -114,6 +124,7 @@ rule all:
         expand(join(outdir, "{group}/classify/bin_species_calls.tsv"), group = group_list),
         expand(join(outdir, "{group}/final/{group}.tsv"), group = group_list),
         expand(join(outdir, "{group}/final/{group}_simple.tsv"), group = group_list),
+        join(outdir, "binning_table_all_full.tsv")
 
 ##########################################
 ####### Prepping input for binning #######
@@ -238,6 +249,19 @@ checkpoint metabat:
         outstring = join(outdir, "{group}/metabat/bins/bin")
     shell: """
         metabat2 --seed 1 -t {threads} --unbinned --inFile {input.asm} --outFile {params.outstring} --abdFile {input.depth}
+
+        # if no bins produced, copy contigs to bin.unbinned
+        if [ $(ls {output} | wc -l ) == "0" ]; then
+            cp {input.asm} {output}/bin.unbinned.fa
+
+        # check for bin.tooShort.fa thats empty
+        if [ -f {output}/bin.tooShort.fa ]; then
+            echo "Found bin.tooShort.fa"
+            if [ $(cat {output}/bin.tooShort.fa | wc -l ) == "0" ]; then
+                echo "Removing bin.tooShort.fa"
+                rm {output}/bin.tooShort.fa
+            fi
+        fi
         """
 
 # Run MaxBin2 binner
@@ -251,9 +275,10 @@ checkpoint maxbin:
         "docker://quay.io/biocontainers/maxbin2:2.2.7--he1b5a44_1"
     params:
         outfolder = join(outdir, "{group}/maxbin/"),
+        logfile = join(outdir, "{group}/maxbin/maxbin.log"),
         abundance_folder = join(outdir, "{group}/maxbin/depth_files"),
         abundance_list = join(outdir, "{group}/maxbin/abundance_list.txt"),
-        num_samples = lambda wildcards: len(group_to_samples[wildcards.group])
+        num_samples = lambda wildcards: len(group_to_samples[wildcards.group]),
     resources:
         time=lambda wildcards, attempt: attempt * 2
     threads: 8
@@ -272,9 +297,21 @@ checkpoint maxbin:
         # make a list of abundance files
         ls {params.abundance_folder}/*.txt > {params.abundance_list}
         run_MaxBin.pl -contig {input.contigs} -out maxbin \
-        -abund_list {params.abundance_list} -thread {threads}
-        mkdir bins/
-        mv *.fasta bins/
+        -abund_list {params.abundance_list} -thread {threads} || true
+
+        # look in log  if dataset cant be binned, just copy contigs over
+        if $(grep -q "cannot be binned" {params.logfile}); then
+            echo 'DATASET CANNOT BE BINNED'
+            mkdir {params.outfolder}/bins/
+            cp {input.contigs} {params.outfolder}/bins/maxbin.unbinned.fasta
+        elif ls {params.outfolder}/*.fasta 1> /dev/null 2>&1; then
+            echo "FOUND BINS"
+            mkdir {params.outfolder}/bins/
+            mv {params.outfolder}/*.fasta {params.outfolder}/bins/
+        else 
+            echo "PROGRAM MUST HAVE FAILED"
+            exit 1
+        fi
 
         """
 
@@ -408,6 +445,7 @@ rule DAStool:
         maxbin_tsv = join(outdir, "{group}/DAS_tool/maxbin_scaffold2bin.tsv"),
         mycc_tsv = join(outdir, "{group}/DAS_tool/mycc_scaffold2bin.tsv"),
         concoct_tsv = join(outdir, "{group}/DAS_tool/concoct_scaffold2bin.tsv"),
+        logfile = join(outdir, "{group}/DAS_tool/_DASTool.log"),
     threads: 8
     resources:
         time=lambda wildcards, attempt: attempt * 6
@@ -420,13 +458,21 @@ rule DAStool:
         # Run DAS_Tool
         DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv},{params.concoct_tsv} \
         -l metabat,maxbin,concoct -c {input.contigs} -o {params.outfolder} \
-        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
+        --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1 || true
 
-        # only 2 binners
-        # DAS_Tool -i {params.metabat_tsv},{params.maxbin_tsv}\
-        # -l metabat,maxbin -c {input.contigs} -o {params.outfolder} \
-        # --search_engine diamond --threads {threads} --write_bins 1 --write_unbinned 1
-        touch {output}
+        if $(grep -q "No bins with bin-score >0.5 found" {params.logfile}) || $(grep -q "single copy gene prediction using diamond failed" {params.logfile}); then
+            echo 'DATASET CANNOT BE BINNED'
+            mkdir {params.outfolder}/_DASTool_bins
+            cp {input.contigs} {params.outfolder}/_DASTool_bins/unbinned.fa
+            touch {output}
+        elif ls {params.outfolder}/_DASTool_bins/*.fa 1> /dev/null 2>&1; then
+            echo "FOUND BINS"
+            touch {output}
+        else 
+            echo "PROGRAM MUST HAVE FAILED IN SOME OTHER WAY"
+            exit 1
+        fi
+
         """
 
 # extract the bins as a separate rule to speed up execution
@@ -621,7 +667,7 @@ rule prokka:
         prefix = "{group}_{bin}.fa"
     shell: """
         # don't run this on unbinned contigs, takes forever
-        if [ {wildcards.bin} == *"unbinned" ]; then
+        if [[ {wildcards.bin} =~ "unbinned" ]]; then
             touch {output}
             touch {params.prokkafolder}/prokka_skipped.out
         else
@@ -741,7 +787,7 @@ rule kraken2:
     resources:
         mem = 256,
         time = 6
-    threads: 4
+    threads: 16
     shell: """
         kraken2 --db {params.db} --db {params.db} --threads {threads} \
         --output {output.krak} --report {output.krak_report} {input}
@@ -780,3 +826,20 @@ rule postprocess:
         bins = lambda wildcards: get_DAStool_bins(wildcards),
         sample = lambda wildcards: wildcards.group
     script: "scripts/postprocess.R"
+
+rule combine_final_reports:
+    input:
+        all_full = expand(join(outdir, "{group}/final/{group}.tsv"), group=group_list),
+        single_full = expand(join(outdir, "{group}/final/{group}.tsv"), group=group_list[0]),
+        all_simple = expand(join(outdir, "{group}/final/{group}_simple.tsv"), group=group_list),
+        single_simple = expand(join(outdir, "{group}/final/{group}.tsv"), group=group_list[0]),
+    output:
+        full = join(outdir, "binning_table_all_full.tsv"),
+        simple = join(outdir, "binning_table_all_simple.tsv"),
+    shell: """
+        head -n 1 {input.single_full} > {output.full}
+        tail -n +2 -q {input.all_full} >> {output.full}
+        head -n 1 {input.single_simple} > {output.simple}
+        tail -n +2 -q {input.all_simple} >> {output.simple}
+    """
+

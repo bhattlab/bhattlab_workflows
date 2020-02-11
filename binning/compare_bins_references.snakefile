@@ -120,7 +120,9 @@ rule all:
         # expand(join(outdir, "{sample}/reference_comparison/mash_{choice}/{bin}_mash_dist_best.tsv"), 
             # sample=sample_list, choice=db_choices, bin=lambda wildcards: sample_bins[wildcards.sample]),
         expand(join(outdir, "{sample}/reference_comparison/{choice}_done.txt"), 
-            sample=sample_list, choice=db_choices)
+            sample=sample_list, choice=db_choices),
+        expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
+            sample=sample_list, choice=db_choices),
 
 
 # compare to all reference sketch with MASH
@@ -247,7 +249,7 @@ rule nucmer_from_fastani:
                 comp_name=$(echo $comp_name1 | sed "s/.report//g")
                 printf '%s\t%s\t%s\n' "$comp_name" "$idty" "$ttl" >> {output}.tmp
             done
-            sort -k2,2 -hr {output}.tmp > {output}
+            sort -k2,2 -k3,3 -nr {output}.tmp > {output}
             rm {output}.tmp
         else
             echo "Skipping nucmer."
@@ -264,3 +266,75 @@ rule done_comparison:
     shell: """
         touch {output}
     """
+
+
+# append the top results to the final binning file 
+rule top_nucmer:
+    input:
+        aggregate_nucmer
+    output:
+        join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
+    params:
+        nucmer_dir = join(outdir, "{sample}/reference_comparison/nucmer_{choice}"),
+    shell: """
+        cd {params.nucmer_dir}
+        echo -e "bin\tgenome\tANI\talignment_length" > {output}
+        for i in *; do 
+            paste <(echo $i) <(sort -k2,2 -k3,3 -rn "$i"/report_stats.txt | head -n 1) >> {output}
+        done
+    """
+
+
+# concatenate these all into one for all samples
+rule concat_top_nucmer:
+    input:
+        expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), sample=sample_list)
+    output:
+        join(outdir, "allsample_nucmer_top_{choice}.txt"), 
+        outdir=outdir,
+        choice=lambda wildcards: wildcards.choice,
+    shell: """
+        cd {params.outdir}
+        echo -e "sample\tbin\tgenome\tANI\talignment_length" > {output}
+        for i in $(ls -d */); do
+            s=$(basename "$i")
+            echo "$s"
+            comp_file="$s"/reference_comparison/nucmer_top_{params.choice}.txt
+            nl=$(tail -n +2 "$comp_file" | wc -l)
+            # pase column of sample name and report info together
+            # fix lines that end in tab (that have no alignment data) 
+            # by adding in NA cols
+            paste <(yes "$s" | head -n "$nl") <(tail -n +2 "$comp_file") | sed "s/\t$/\tNA\tNA\tNA/g" >> {output}
+        done
+
+    """
+
+# run this last rule separately in case the code above wasnt ported to snakemake well
+'''
+out=allsample_nucmer_top_genbank.txt
+echo -e "sample\tbin\tgenome\tANI\talignment_length" > "$out"
+for i in $(ls -d */); do
+    s=$(basename "$i")
+    echo "$s"
+    comp_file="$s"/reference_comparison/nucmer_top_genbank.txt
+    nl=$(tail -n +2 "$comp_file" | wc -l)
+    # pase column of sample name and report info together
+    # fix lines that end in tab (that have no alignment data) 
+    # by adding in NA cols
+    paste <(yes "$s" | head -n "$nl") <(tail -n +2 "$comp_file") | sed "s/\t$/\tNA\tNA\tNA/g" >> "$out"
+done
+
+out=allsample_nucmer_top_mags.txt
+echo -e "sample\tbin\tgenome\tANI\talignment_length" > "$out"
+for i in $(ls -d */); do
+    s=$(basename "$i")
+    echo "$s"
+    comp_file="$s"/reference_comparison/nucmer_top_mags.txt
+    nl=$(tail -n +2 "$comp_file" | wc -l)
+    # pase column of sample name and report info together
+    # fix lines that end in tab (that have no alignment data) 
+    # by adding in NA cols
+    paste <(yes "$s" | head -n "$nl") <(tail -n +2 "$comp_file") | sed "s/\t$/\tNA\tNA\tNA/g" >> "$out"
+done
+
+'''
