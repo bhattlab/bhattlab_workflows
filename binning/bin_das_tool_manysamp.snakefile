@@ -48,9 +48,6 @@ outdir = abspath(outdir)
 # Determine if long reads
 if 'long_read' in config and config['long_read']:
     long_read = True
-    print('#############################################')
-    print('Untested in this implementation')
-    print('#############################################')
 else:
     long_read = False
 
