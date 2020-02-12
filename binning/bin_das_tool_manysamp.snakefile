@@ -206,11 +206,12 @@ rule metabat_pre:
         join(outdir, "{sample}/{sample}_lr.bam") if long_read else join(outdir, "{sample}/{sample}.bam") #choose a long read alignment or short read alignment
     output:
         single = join(outdir, "{sample}/{sample}.fa.depth.txt"),
+    params:
         paired = join(outdir, "{sample}/{sample}.fa.paired.txt"),
     singularity:
         "docker://quay.io/biocontainers/metabat2:2.15--h137b6e9_0"
     shell: """
-        jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {output.paired} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
+        jgi_summarize_bam_contig_depths --outputDepth {output.single} --pairedContigs {params.paired} --minContigLength 1000 --minContigDepth 1  {input} --percentIdentity 50
         """
 
 #####################################################
