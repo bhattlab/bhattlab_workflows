@@ -1,0 +1,8 @@
+# Note that VIBRANT must be installed and configured prior to use! 
+# See https://www.notion.so/bhattlab/VIBRANT-9178b5805e5d47bc95358ce942baa800
+
+# output directory. Will create a folder within for each sample
+outdir_base: .
+# sample file: two colum tab delimited
+# SAMPLE    ASSEMBLY
+sample_file: sample_assemblies.txt
