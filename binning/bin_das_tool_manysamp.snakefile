@@ -236,7 +236,7 @@ checkpoint metabat:
         # if no bins produced, copy contigs to bin.unbinned
         if [ $(ls {output} | wc -l ) == "0" ]; then
             cp {input.asm} {output}/bin.unbinned.fa
-
+        fi
         # check for bin.tooShort.fa thats empty
         if [ -f {output}/bin.tooShort.fa ]; then
             echo "Found bin.tooShort.fa"
