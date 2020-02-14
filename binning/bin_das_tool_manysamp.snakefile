@@ -772,6 +772,8 @@ rule postprocess:
     output:
         full = join(outdir, "{sample}/final/{sample}.tsv"),
         simple = join(outdir, "{sample}/final/{sample}_simple.tsv")
+    singularity:
+        "shub://bsiranosian/bin_genomes:binning"
     params:
         bins = lambda wildcards: get_DAStool_bins(wildcards),
         # bins = glob_wildcards(join(outdir, "{sample}/DAS_tool_bins", "{bin}.fa")).bin,
