@@ -1,41 +1,31 @@
-
 ## Metagenomic binning
 Binning is essentially clustering for assembled contigs. Create draft metagenome-assembled genomes and evaluate their completeness, contamination and other metrics with these helpful tools!
 
-There are two binning workflows in the `binning` folder. `bin_metabat.snakefile` uses a single binning method ([metabat2](https://peerj.com/articles/1165/)), while `bin_das_tool.snakefile` uses several tools and integrates the result with [DASTool](https://www.nature.com/articles/s41564-018-0171-1). Both use the same downstream evaluation and reporting tools. The DASTool pipeline was made by [Alyssa Benjamin](https://github.com/ambenj).
+The current best practice for binning is to use [DASTool](https://www.nature.com/articles/s41564-018-0171-1), which aggregates results from several binning methods to produce a higher-quality bin set. The DASTool pipeline here uses three binners at its heart: Metabat2, Maxbin and CONCOCT. 
 
-In contrast to other workflows, you must run binning individually for each sample. Change the following options in the `binning/config_binning.yaml` file to match your project:
-- assembly
-- sample
-- outdir_base
-- reads1
-- reads2
-- read_length
+### Running DASTool
+DASTool can now be run across many samples at once! Use `binning/bin_das_tool_manysamp.snakefile` and specify parameters in `binning/config_binning_manysamp.yaml`
 
-You can launch either workflow using singularity to manage all dependencies with a command like, submitting jobs to the SCG cluster:
-```
-snakemake --configfile path/to/config_binning.yaml --snakefile path/to/bin_metabat.snakefile \
---profile scg --jobs 100 --use-singularity --singularity-args '--bind /labs/ --bind /scratch/ '
-```
+**Specify the following fields in the configfile (defaults are provided)**
+    - outdir_base (a folder for each sample will be created within here)
+    - sample_file (see below)
+    - read_length 
+    - kraken2db
+    - custom_taxonomy
+    - long_read
 
-### Running binning on many samples
-To make this workflow easy to run on many samples, you need to make a configuration file for each one. If all were preprocessed and assembled with our workflows in the same directory, first make one config file to match your samples. Call this `config_example.yaml`. Put your list of samples, one per line, in `sample_list.txt`. Then you can replace the sample name in the configfile in a loop, changing SAMPLE to the name you used with the example configfile:
+Your sample file must be a tab delimited file with three columns and one row for each sample. Each row should look like this, with tab as the delimiter. Assembly and reads are file paths, and forward/reverse reads are specified with commas.
 ```
-mkdir configfiles
-while read line; do
-    echo "$line"
-    sed "s/SAMPLE/$line/g" config_example.yaml > configfiles/config_"$line".yaml
-done < todo_binning.txt 
+SAMPLE_NAME    ASSEMBLY   READS1,READS2
 ```
 
-Then, you can run the snakemake workflow for each configfile. Either do this in separate windows in tmux, or run it as a loop. This loop is sequential, but you could even get fancy and run something in parallel with xargs... Change the paths here to correspond to where you have the snakefile and configfiles. 
+Then, you can launch the workflow to submit jobs to the SCG SLURM cluster.
 ```
-for c in configfiles/*.yaml; do
-    echo "starting $c"
-    snakemake --snakefile ~/projects/bhattlab_workflows/binning/bin_das_tool.snakefile --configfile "$c" --use-singularity --singularity-args '--bind /labs/ --bind /scratch/' --profile scg --jobs 99 --rerun-incomplete
-done
+snakemake --configfile config_binning_manysamp.yaml --snakefile path/to/bin_das_tool_manysamp.snakefile \
+--profile scg --jobs 999 --use-singularity --singularity-args '--bind /oak/,/labs/,/home'
 ```
 
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbMTExMjE5NjEyN119
--->
+### Running on Nanopore assemblies
+Change the `long_read` specification in the configfile and put your nanopore reads in the third column (just once). If you also have high-quality short read data, you could run this pipeline in the standard mode by providing your nanopore assembly and the short read pairs. This might be more accurate for depth/coverage calculations, but I'm not sure. 
+
+*Still in development, please file issues on GitHub if you encounter any.*
