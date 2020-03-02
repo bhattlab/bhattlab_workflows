@@ -45,11 +45,12 @@ rule trim_low_abund:
         outdir=join(outdir, "02_trim_kmers")
     threads:1
     resources:
-        time=4
+        time=4,
+        mem=40
     singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
     shell: """
         cd {params.outdir}
-        trim-low-abund.py -C 3 -Z 18 -V -M 2e9 {input}
+        trim-low-abund.py -C 3 -Z 18 -V -M 32e9 {input}
     """
 
 rule compute:
