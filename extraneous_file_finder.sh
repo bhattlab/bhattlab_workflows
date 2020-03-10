@@ -14,6 +14,10 @@ grep "spades.*misc$" find_tmp.txt  >> extra_files.txt
 grep "spades.*corrected$" find_tmp.txt  >> extra_files.txt
 grep "spades.*tmp$" find_tmp.txt  >> extra_files.txt
 
+# Megahit assembly temp files and graphs
+echo "# extra megahit assembly directories" >> extra_files.txt
+grep "megahit.*intermediate_contigs" find_tmp.txt  >> extra_files.txt
+
 # preprocessing extra files
 echo "# extra preprocessing files" >> extra_files.txt
 grep "preprocessing.*01_trimmed.*.fq.gz$" find_tmp.txt >> extra_files.txt
