@@ -25,6 +25,11 @@ snakemake --configfile config_binning_manysamp.yaml --snakefile path/to/bin_das_
 --profile scg --jobs 999 --use-singularity --singularity-args '--bind /oak/,/labs/,/home' --use-conda
 ```
 
+### Comparing bins against references
+To compare your freshly minted bins against reference genomes from Genbank and MAG databases, run the `compare_bins_references.snakefile` pipeline. For each sample, this will compare the bin against the genbank and MAG databases with MASH. The top 50 matches will be passed into fastani, and the top 10 from there will get more careful nucmer alignments and dotplots. This pipeline relies on the directory structure output from the binning pipeline. The file `config_compare_bins_references.yaml` takes two inputs: 
+ - base output directory from binnnig. expects one folder for each sample within this directory. This should be where you ran DASTool or Metabat
+ - sample file: one column, newline delimited for each sample this is just the sample name. There should be a folder in outdir_base for each sample name specified here. 
+
 ### Running on Nanopore assemblies
 Change the `long_read` specification in the configfile and put your nanopore reads in the third column (just once). If you also have high-quality short read data, you could run this pipeline in the standard mode by providing your nanopore assembly and the short read pairs. This might be more accurate for depth/coverage calculations, but I'm not sure. 
 
