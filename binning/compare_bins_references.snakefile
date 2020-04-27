@@ -121,8 +121,8 @@ rule all:
             # sample=sample_list, choice=db_choices, bin=lambda wildcards: sample_bins[wildcards.sample]),
         expand(join(outdir, "{sample}/reference_comparison/{choice}_done.txt"), 
             sample=sample_list, choice=db_choices),
-        expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
-            sample=sample_list, choice=db_choices),
+        # expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
+        #     sample=sample_list, choice=db_choices),
 
 
 # compare to all reference sketch with MASH
@@ -284,7 +284,7 @@ rule top_nucmer:
         done
     """
 
-
+'''
 # concatenate these all into one for all samples
 rule concat_top_nucmer:
     input:
@@ -308,7 +308,7 @@ rule concat_top_nucmer:
         done
 
     """
-
+'''
 # run this last rule separately in case the code above wasnt ported to snakemake well
 '''
 out=allsample_nucmer_top_genbank.txt
