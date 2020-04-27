@@ -15,7 +15,7 @@ read_length: 150
 
 # kraken2 database to use for classification
 # do not change this in most cases
-kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_feb2019/genbank_genome_chromosome_scaffold/
+kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_jan2020/genbank_genome_chromosome_scaffold/
 
 # are we using a non-standard (non ncbi) taxonomy
 custom_taxonomy: False
