@@ -22,7 +22,7 @@ SAMPLE_NAME    ASSEMBLY   READS1,READS2
 Then, you can launch the workflow to submit jobs to the SCG SLURM cluster.
 ```
 snakemake --configfile config_binning_manysamp.yaml --snakefile path/to/bin_das_tool_manysamp.snakefile \
---profile scg --jobs 999 --use-singularity --singularity-args '--bind /oak/,/labs/,/home'
+--profile scg --jobs 999 --use-singularity --singularity-args '--bind /oak/,/labs/,/home' --use-conda
 ```
 
 ### Running on Nanopore assemblies
