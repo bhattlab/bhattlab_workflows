@@ -138,6 +138,8 @@ rule compare_to_references_mash:
     params:
         keep_mash_matches = keep_mash_matches
     threads: 1
+    singularity:
+        "docker://quay.io/biocontainers/mash:2.2.2--h3d38be6_0"
     shell: """
         set +o pipefail
         mash dist -p {threads} {input.sketch_file} {input.bin} |sort -k 3,3 | head -n {params.keep_mash_matches} > {output.best_dist}
@@ -160,6 +162,8 @@ rule compare_to_references_fastani:
     resources:
         mem = 128,
         time = lambda wildcards, attempt: 2 ** attempt
+    singularity: 
+        "docker://quay.io/biocontainers/fastani:1.3--he1c1bb9_0"
     shell: """
         fastani --rl {input.best_files} -q {input.bin} -o {output} --minFrag {params.minFrag} --fragLen {params.fragLen} -t {threads}
     """
@@ -196,6 +200,8 @@ rule nucmer_from_fastani:
         outdir_dotplots_snps = join(outdir, '{sample}/reference_comparison/nucmer_{choice}/{bin}/dotplot_snps'),
         outdir_other = join(outdir, '{sample}/reference_comparison/nucmer_{choice}/{bin}/other'),
         tmpdir = join('/tmp/{bin}', ''.join(random.choice(string.ascii_letters) for i in range(6)))
+    singularity:
+        "docker://quay.io/biocontainers/mummer:3.23--pl526he1b5a44_11"
     shell: """
         # only do something if theres lines in the input file
         if [[ $(wc -l <{input.best_references}) -ge 1 ]]; then
