@@ -325,13 +325,13 @@ checkpoint mycc:
         "docker://990210oliver/mycc.docker:v1"
     params:
         outfolder = join(outdir, "{group}/mycc"),
-        workdir = join(outdir, "{group}")
+        mycc_workdir = join(outdir, "{group}")
     resources:
         time=lambda wildcards, attempt: attempt * 12,
         mem=lambda wildcards, attempt: attempt * 128
     shell: """
         if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
-        cd {params.workdir}
+        cd {params.mycc_workdir}
         MyCC.py {input.contigs} -meta
         mv 20*/ {params.outfolder}/  # change variable folder name to mycc
         mkdir {params.outfolder}/bins/

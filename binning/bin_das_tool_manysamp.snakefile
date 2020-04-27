@@ -300,13 +300,13 @@ checkpoint mycc:
     params:
         outfolder = join(outdir, "{sample}/mycc"),
         outfolder_bins = join(outdir, "{sample}/mycc/bins"),
-        workdir = join(outdir, "{sample}")
+        mycc_workdir = join(outdir, "{sample}")
     resources:
         time=lambda wildcards, attempt: attempt * 12,
         mem=lambda wildcards, attempt: attempt * 128
     shell: """
         if [ -d {params.outfolder} ]; then rm -r {params.outfolder}; fi
-        cd {params.workdir}
+        cd {params.mycc_workdir}
         MyCC.py {input.contigs} -meta
         mv 20*/ {params.outfolder}/  # change variable folder name to mycc
         mkdir {params.outfolder_bins}
