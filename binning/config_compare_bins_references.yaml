@@ -1,4 +1,7 @@
 # base output directory from binnnig. expects one folder for each sample
+# within this directory. This should be where you ran DASTool or Metabat
 outdir_base: .
 # sample file: one column, newline delimited for each sample
+# this is just the sample name. There should be a folder in 
+# outdir_base for each sample name specified here. 
 sample_file: binning_input_1col.txt
