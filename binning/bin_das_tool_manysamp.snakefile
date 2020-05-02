@@ -332,8 +332,8 @@ rule concoct_cut:
 rule concoct_coverage:
     input:
         bedfile = rules.concoct_cut.output.bedfile,
-        bam = rules.bwa_align.output,
-        bam_bai = rules.bam_idx.output
+        bam_bai = rules.bam_idx.output,
+        bam = join(outdir, "{sample}/{sample}_lr.bam") if long_read else join(outdir, "{sample}/{sample}.bam") #choose a long read alignment or short read alignment
     output:
         join(outdir, '{sample}/{sample}_coverage_table.tsv')
     resources:
