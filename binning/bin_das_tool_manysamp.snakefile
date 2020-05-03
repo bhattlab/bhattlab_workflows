@@ -778,14 +778,15 @@ rule postprocess:
         bins = lambda wildcards: get_DAStool_bins(wildcards),
         # bins = glob_wildcards(join(outdir, "{sample}/DAS_tool_bins", "{bin}.fa")).bin,
         sample = lambda wildcards: wildcards.sample
-    script: "scripts/postprocess.R"
+    script: 
+        "scripts/postprocess.R"
 
 rule combine_final_reports:
     input:
         all_full = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list),
         single_full = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list[0]),
         all_simple = expand(join(outdir, "{sample}/final/{sample}_simple.tsv"), sample=sample_list),
-        single_simple = expand(join(outdir, "{sample}/final/{sample}.tsv"), sample=sample_list[0]),
+        single_simple = expand(join(outdir, "{sample}/final/{sample}_simple.tsv"), sample=sample_list[0]),
     output:
         full = join(outdir, "binning_table_all_full.tsv"),
         simple = join(outdir, "binning_table_all_simple.tsv"),

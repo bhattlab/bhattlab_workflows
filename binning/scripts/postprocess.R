@@ -157,5 +157,5 @@ out.df <- out.df[, new.col.order]
 simple.columns <- new.col.order[1:23]
 out.df.simple <- out.df[,simple.columns]
 
-write.table(out.df, snakemake@output[["full"]], sep = "\t", quote = F, row.names = F)
-write.table(out.df.simple, snakemake@output[["simple"]], sep = "\t", quote = F, row.names = F)
+write.table(out.df, snakemake@output[["full"]], sep = "\t", quote = F, row.names = F, col.names=T)
+write.table(out.df.simple, snakemake@output[["simple"]], sep = "\t", quote = F, row.names = F, col.names=T)
