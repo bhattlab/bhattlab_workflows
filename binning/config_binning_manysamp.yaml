@@ -13,3 +13,7 @@ kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_jan2020/genb
 custom_taxonomy: False
 # Working with long reads from Nanopore? Experimental implementation in the DAS_tool workflow
 long_read: False
+# to speedup execution time, can skip searching for samples that already finished 
+# this will prevent them from being included in the final table, though
+skip_finished: False
+
