@@ -2,7 +2,6 @@
 # than that awful shell script we were using
 options(stringsAsFactors = F)
 # use the snakemake inputs iteratively
-# prokka
 prokka.files <- snakemake@input[['prokka']]
 quast.files <- snakemake@input[['quast']]
 checkm.files <- snakemake@input[['checkm']]
@@ -13,6 +12,19 @@ coverage.files <- snakemake@input[['coverage']]
 bins <- snakemake@params[['bins']]
 sample.name <- snakemake@params[['sample']]
 
+if (F) {
+  print('PROKKA: ')
+  print(prokka.files)
+  print('')
+  print(quast.files)
+  print(checkm.files)
+  print(trna.files)
+  print(rrna.files)
+  print(classify.files)
+  print(coverage.files)
+  print(bins)
+  print(sample.name)
+}
 names(prokka.files) <- bins
 names(quast.files) <- bins
 names(trna.files) <- bins

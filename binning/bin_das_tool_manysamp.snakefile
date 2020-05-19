@@ -1,5 +1,5 @@
 from os.path import join, abspath, expanduser, exists
-localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins
+localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins, combine_final_reports
 
 def get_sample_assemblies_reads(sample_file):
     sample_reads = {}
@@ -53,11 +53,11 @@ else:
 
 
 # to speedup execution - remove samples that are done completely
-skip_finished = False
-if skip_finished:
-    # sample_reads_new = [s for s in sample_reads if (!(exists(join(outdir, s, "final" + s + ".tsv")))) ]
-    sample_list_new = [s for s in sample_list if not exists(join(outdir, s, "final", s + ".tsv")) ]
-    sample_list = sample_list_new
+# only if this new option specified in config
+if 'skip_finished' in config:
+    if config['skip_finished']:
+        sample_list_new = [s for s in sample_list if not exists(join(outdir, s, "final", s + ".tsv")) ]
+        sample_list = sample_list_new
 
 print('##################################################################')
 print(' SAMPLE LIST ')
