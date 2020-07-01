@@ -3,7 +3,7 @@
 import sys
 from os.path import join
 
-if config['srr']=='' or config['srr'][0:3] != 'SRR':
+if config['srr']=='' or config['srr'][0:3] not in ['SRR', 'ERR']:
     sys.exit('Must specify SRR id on the commad line like: --config srr=SRR000000')
 srrid = config['srr']
 
@@ -19,12 +19,16 @@ rule dump:
     resources:
         time = 6,
         mem = 64
-    threads: 4
+    threads: 1
     singularity: "shub://bsiranosian/bens_1337_workflows:fastq-dump"
     shell: """
     rm -f {output}
+    rm -rf {config[srr]}
     parallel-fastq-dump --threads {threads} --outdir {config[srr]} --sra-id {config[srr]} \
-    --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip --readids
+    --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip
+    # prefetch {config[srr]}
+    # fastq-dump --outdir {config[srr]} --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip {config[srr]} 
     touch {output}
     """
 
+# removed readids command form this
