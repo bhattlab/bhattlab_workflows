@@ -1,0 +1,19 @@
+# base output directory. Will create direcrorties within for each sample you do this for
+outdir_base: binning_das_tool 
+# sample file: FOUR column tsv, with paired end reads specified with commas
+# SAMPLE_NAME   SAMPLE_GROUP    ASSEMBLY   READS1,READS2
+sample_file: co_binning_input.txt
+# mean read length
+read_length: 150
+# kraken2 database to use for classification
+# default is genbank_genome_chromosome_scaffold - high memory, high sensitivity, lower specificity
+# also available refseq: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_jan2020/refseq
+kraken2db: /labs/asbhatt/data/program_indices/kraken2/kraken_custom_jan2020/genbank_genome_chromosome_scaffold/
+# are we using a non-standard (non ncbi) taxonomy
+custom_taxonomy: False
+# Working with long reads from Nanopore? Experimental implementation in the DAS_tool workflow
+long_read: False
+# to speedup execution time, can skip searching for samples that already finished 
+# this will prevent them from being included in the final table, though
+skip_finished: False
+

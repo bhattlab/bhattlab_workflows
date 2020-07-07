@@ -7,6 +7,9 @@ localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_e
 # bin_idxstats and bin_coverage need to be done with average of group
 # is there a threshold in das tool I'm not aware of yet
 
+
+# read the sample file, which has columns
+# SAMPLE    GOUP    ASSEMBLY    READS
 def get_sample_group_reads(sample_file):
     sample_reads = {}
     group_reads1 = {}
@@ -244,7 +247,7 @@ checkpoint metabat:
     resources:
         mem=64,
         time=24
-    threads: 4
+    threads: 8
     params:
         outstring = join(outdir, "{group}/metabat/bins/bin")
     shell: """
@@ -253,6 +256,7 @@ checkpoint metabat:
         # if no bins produced, copy contigs to bin.unbinned
         if [ $(ls {output} | wc -l ) == "0" ]; then
             cp {input.asm} {output}/bin.unbinned.fa
+        fi
 
         # check for bin.tooShort.fa thats empty
         if [ -f {output}/bin.tooShort.fa ]; then
