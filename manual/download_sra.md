@@ -13,4 +13,10 @@ SRR12185739
 SRR12185740
 ```
 
+There is not a singularity container for this workflow yet, so you have to install sra-tools into your conda environment like so: 
+
+```
+conda install -c bioconda sra-tools
+```
+
 Note that there is an error that crops up occasionally where a valid SRA ID is supposedly invalid. The only fix right now is to try again, see https://github.com/ncbi/sra-tools/issues/215
