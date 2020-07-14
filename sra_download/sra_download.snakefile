@@ -3,32 +3,42 @@
 import sys
 from os.path import join
 
-if config['srr']=='' or config['srr'][0:3] not in ['SRR', 'ERR']:
-    sys.exit('Must specify SRR id on the commad line like: --config srr=SRR000000')
-srrid = config['srr']
+def get_srr(sample_list):
+    srr_list = []
+    with open(sample_list) as sf:
+        for l in sf.readlines():
+            s = l.strip().split()
+    	    if s[0] == 'Sample' or s[0] == '#Sample' or s[0].startswith('#'):
+                continue
+       	    if len(s) > 1:
+                sys.exit('Incorrect format')
+            if s[0]=='' or s[0][0:3] not in ['SRR', 'ERR']:
+                sys.exit('Must specify SRR/ERR id on the command line like: --config srr=SRR000000')
+            sample = s[0]
+       	    srr_list.append(sample)
+    print(srr_list)
+    return srr_list
+
+list2 = config['srr_list']
+srr_list = get_srr(list2)
+
+print(expand("{foo}", foo=srr_list))
 
 # unsure of what the output will be in pairs, etc
 # so make a completed flag
 rule all:
     input:
-        join(config['srr'], 'completed.txt')
+        expand(join("{foo}", 'completed.txt'), foo=srr_list)
 
 rule dump:
     output:
-        join(config['srr'], 'completed.txt')
+        join("{sample}", 'completed.txt')
     resources:
         time = 6,
         mem = 64
-    threads: 1
-    singularity: "shub://bsiranosian/bens_1337_workflows:fastq-dump"
+#    singularity: "docker://quay.io/biocontainers/sra-tools:2.10.7--pl526haddd2b5_1"
+    threads: 4
     shell: """
-    rm -f {output}
-    rm -rf {config[srr]}
-    parallel-fastq-dump --threads {threads} --outdir {config[srr]} --sra-id {config[srr]} \
-    --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip
-    # prefetch {config[srr]}
-    # fastq-dump --outdir {config[srr]} --gzip --skip-technical --read-filter pass --dumpbase --split-3 --clip {config[srr]} 
+    prefetch {wildcards.sample} && fasterq-dump {wildcards.sample}
     touch {output}
     """
-
-# removed readids command form this
