@@ -1,3 +1,4 @@
 assemblers: ["spades"] #can also run megahit if you specify it in this list
+flag: ["meta"] #can also specify plasmid or rna
 output_directory: assembly
 sample_table: preprocessing/01_processing/assembly_input.txt

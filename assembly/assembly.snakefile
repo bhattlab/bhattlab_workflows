@@ -20,10 +20,13 @@ sample_dict = {k:sample_dict[k] for k in sample_dict.keys() if k[0] != '#'}
 sample_list = list(sample_dict.keys())
 
 # can do more than one assembler here
-assemblers = config['assemblers'] 
+assemblers = config['assemblers']
 # ensure at least one valid option
 if not ('megahit' in assemblers or 'spades' in assemblers):
     sys.exit('Must have at least one valid assembler in config!')
+
+#get flag
+flag = config['flag']
 
 # define output files depending on which assemblers
 outfiles_megahit_assembly = expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/{sample}.contigs.fa"), sample=sample_list)
@@ -122,7 +125,7 @@ rule spades:
         outdir = join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/"),
         reads_command = lambda wildcards: get_spades_reads_command(sample_dict[wildcards.sample])
     shell: """
-        spades.py --meta {params.reads_command} -o {params.outdir} -m {resources.mem} -t {threads}
+        spades.py --{flag} {params.reads_command} -o {params.outdir} -m {resources.mem} -t {threads}
     """
 # cmd += " -o {params.outdir} -m {resources.mem} -t {threads} --only-assembler"
 # add in --only-assembler if spades gets stuck on read error correction
@@ -151,4 +154,3 @@ rule combine_spades_quast_reports_R:
         sample_names = sample_list,
         assembly_dir = join(PROJECT_DIR, "02_assembly/02_metaspades/")
     script: "scripts/combine_quast_reports.R"
-
