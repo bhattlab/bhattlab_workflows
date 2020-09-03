@@ -1,0 +1,10 @@
+# configfile for RGI read 
+# Two columns, tab delimited
+# SAMPLE    READS1      READS2
+sample_table: 'sample_reads.tsv'
+# output directory
+outdir_base: 'rgi_bwt'
+# aligner to use 
+# can be "bwa" or "bowtie2" 
+# recommend bwa
+aligner: "bwa"

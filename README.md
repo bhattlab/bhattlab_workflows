@@ -13,7 +13,7 @@ Computational workflows for metagenomics tasks, packaged with Snakemake and sing
     - [**Sourmash** read comparison](manual/sourmash.md)
     - [**Download SRA** data](manual/download_sra.md)
     - [Comparative microbial genomics pipelines](manual/comparative_genomics.md)
-	  
+	- [ARG detection with RGI](manual/arg.md) 
 
 ### Quickstart
 ```
