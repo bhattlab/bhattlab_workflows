@@ -42,7 +42,7 @@ rule rgi_read:
     resources:
         mem=16,
         time = lambda wildcards, attempt: 2 * attempt
-    benchmark: join(PROJECT_DIR, "{sample}" "{sample}_time.txt")
+    benchmark: join(PROJECT_DIR, "{sample}", "{sample}_time.txt")
     params: 
         outdir = join(PROJECT_DIR, "{sample}"),
         out_base = join(PROJECT_DIR, "{sample}", "{sample}"),
