@@ -47,7 +47,7 @@ rule trim_low_abund:
     resources:
         time=4,
         mem=40
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.outdir}
         trim-low-abund.py -C 3 -Z 18 -V -M 32e9 {input}
@@ -61,7 +61,7 @@ rule compute:
     threads:1
     resources: 
         time=lambda wildcards, attempt: 12 * attempt,
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         sourmash compute --scaled 10000 \
         {input} -o {output} -k 21,31,51
@@ -80,7 +80,7 @@ rule index:
         outfolder_k51="k51",
         filestr="*.sig",
         outdir=join(outdir, "03_sourmash_signatures")
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.outdir}
         sourmash index {params.outfolder_k21} {params.filestr} -k21
@@ -100,7 +100,7 @@ rule compare_k21:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k21} -k 21
@@ -118,7 +118,7 @@ rule compare_k31:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k31} -k 31
@@ -136,7 +136,7 @@ rule compare_k51:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:2.2.0--py27he1b5a44_0"
+    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k51} -k 51
