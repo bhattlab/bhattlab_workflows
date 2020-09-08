@@ -47,7 +47,7 @@ rule trim_low_abund:
     resources:
         time=4,
         mem=40
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/khmer:3.0.0a3--py37hf484d3e_0"
     shell: """
         cd {params.outdir}
         trim-low-abund.py -C 3 -Z 18 -V -M 32e9 {input}
@@ -97,13 +97,14 @@ rule compare_k21:
         filestr="*.sig",
         outfile=join(outdir, "04_sourmash_compare/k21"),
         sigdir=join(outdir, "03_sourmash_signatures")
+    threads: 4
     resources:
         time=6,
         mem=256
     singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
-        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k21} -k 21
+        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k21} -k 21 -p {threads}
     """
 
 rule compare_k31:
@@ -115,13 +116,14 @@ rule compare_k31:
         filestr="*.sig",
         outfile=join(outdir, "04_sourmash_compare/k31"),
         sigdir=join(outdir, "03_sourmash_signatures")
+    threads: 4
     resources:
         time=6,
         mem=256
     singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
-        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k31} -k 31
+        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k31} -k 31 -p {threads}
     """
 
 rule compare_k51:
@@ -133,13 +135,14 @@ rule compare_k51:
         filestr="*.sig",
         outfile=join(outdir, "04_sourmash_compare/k51"),
         sigdir=join(outdir, "03_sourmash_signatures")
+    threads: 4
     resources:
         time=6,
         mem=256
     singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
     shell: """
         cd {params.sigdir}
-        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k51} -k 51
+        sourmash compare {params.filestr} -o {params.outfile} --csv {output.k51} -k 51 -p {threads}
     """
 
 rule plot_R_k21:
