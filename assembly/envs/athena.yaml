@@ -1,0 +1,4 @@
+channels:
+ - bioconda
+dependencies:
+ - athena_meta
