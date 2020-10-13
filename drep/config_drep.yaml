@@ -1,4 +1,4 @@
-`# desired output folder for drep
+# desired output folder for drep
 # relative to the directory you'll be running the script
 outdir_base: drep
 
