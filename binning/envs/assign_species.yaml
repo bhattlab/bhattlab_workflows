@@ -1,0 +1,7 @@
+name: assign_species
+channels:
+  - anaconda
+  - conda-forge
+dependencies:
+  - requests
+  - pandas
