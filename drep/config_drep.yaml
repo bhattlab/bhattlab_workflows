@@ -1,14 +1,10 @@
-# config for the drep snakefile
+`# desired output folder for drep
+# relative to the directory you'll be running the script
+outdir_base: drep
 
-# sample_file: same as binning input
-sample_file: binning_input.txt
-
-# desired output folder for drep
-outdir_base: 'drep'
-
-# foler the das tool binning went into
+# foler containing the output of DAS_Tool binning
 # this must have one folder for each sample, which contains the results from binning
-# as well as the combined table of results from all samples
+# as well as the combined table of results from all samples (binning_table_all_full.tsv)
 das_tool_folder: binning_das_tool
 
 # parameters for selecting bins for drep
