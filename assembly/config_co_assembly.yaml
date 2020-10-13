@@ -1,0 +1,6 @@
+assemblers: ["megahit"] # only works with megahit for the time being
+output_directory: coassembly
+# sample table TSV 4 columns and reads specified as csv: sample name \t sample group \t [reads1, reads2,...,reads n]
+# all reads from the same sample group will be combined into one 
+# prioir to assembly
+sample_table: sample_table_GCP_short.tsv
