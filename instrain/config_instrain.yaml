@@ -1,0 +1,32 @@
+# sample_reads: Three column tab delimited file
+# sample_name   reads1,reads2
+sample_reads: sample_reads.txt
+
+# do the reads in these samples contain barcodes? (10x samples)
+# if you get errors in the bwa alignment step, try setting this to false
+barcodes: True
+
+# number of reads that need to map to a genome for it to be considered in the "filtered" 
+# instrain compare version. Speeds up execution dramatically
+# recommend 20k for most samples, 10k for lower coverage
+compare_filtered_reads: 20000
+
+# cluster_file: list of the clusters from dRep
+# two column tab delimited file
+# cluster_name    genome 
+cluster_file: top_clusters.txt
+# limit to this set of lines in the cluster file, for testing
+# leave blank otherwise. 
+# comma delimited, zero indexed string like this:  0,1,2
+limit_clusters: 
+
+# output directory
+outdir: instrain
+
+# dereplicated contigs from dRep
+# all combined into a multifasta 
+drep_contigs: /oak/stanford/scg/lab_asbhatt/bsiranos/transmission_10x_88/comparison_datasets/olm_2019/drep/dereplicated_genomes/target_genomes.fa
+# result of the dRep pipeline
+# must contain a directory "dereplicated genomes"
+# that has all the dereplicated genomes as individual fasta files
+drep_folder: drep
