@@ -41,7 +41,7 @@ rule rgi_read:
     threads: 8
     resources:
         mem=16,
-        time = lambda wildcards, attempt: 2 * attempt
+        time = lambda wildcards, attempt: 8 * attempt
     benchmark: join(PROJECT_DIR, "{sample}", "{sample}_time.txt")
     params: 
         outdir = join(PROJECT_DIR, "{sample}"),
@@ -54,11 +54,26 @@ rule rgi_read:
         echo "Completed RGI"
     """
 
-# commands to load database from Bens folder
-# db_folder="/oak/stanford/scg/lab_asbhatt/bsiranos/databases/CARD"
+# # to install RGI
+# pip3 install six
+# pip3 install biopython
+# pip3 install filetype
+# pip3 install pytest
+# pip3 install mock
+# pip3 install pandas
+# pip3 install matplotlib
+# pip3 install seaborn
+# pip3 install pyfaidx
+# pip3 install pyahocorasick
+# pip3 install git+https://github.com/arpcard/rgi.git
+
+# # commands to load database from Bens folder
+# db_folder="/home/bsiranos/arg_detection/card_db"
 # db_version="3.1.0"
 # rgi load --card_json "$db_folder"/"$db_version"/card.json 
 # rgi load -i "$db_folder"/"$db_version"/card.json --card_annotation "$db_folder"/"$db_version"/card_database_v"$db_version".fasta 
 # rgi load --wildcard_annotation "$db_folder"/"$db_version"/wildcard/wildcard_database_v"$db_version".fasta --wildcard_index "$db_folder"/"$db_version"/wildcard/index-for-model-sequences.txt --card_annotation "$db_folder"/"$db_version"/card_database_v"$db_version".fasta 
 # rgi load --kmer_database "$db_folder"/"$db_version"/wildcard/61_kmer_db.json --amr_kmers "$db_folder"/"$db_version"/wildcard/all_amr_61mers.txt --kmer_size 61 --debug > kmer_load.61.log 2>&1
 # rgi database -v
+
+# rgi bwt --read_one /home/bsiranos/preprocessing_10x/01_processing/05_sync/p8012_2015-12-15_1.fq.gz --read_two /home/bsiranos/preprocessing_10x/01_processing/05_sync/p8012_2015-12-15_2.fq.gz --aligner bwa --output_file /home/bsiranos/arg_detection/rgi_bwt/p8012_2015-12-15_10x/p8012_2015-12-15_10x         --threads 16 --include_wildcard --clean

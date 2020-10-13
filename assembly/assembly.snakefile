@@ -102,6 +102,7 @@ rule combine_megahit_quast_reports_R:
         expand(join(PROJECT_DIR, "02_assembly/01_megahit/{sample}/quast/report.tsv"), sample=sample_list),
     output:
         join(PROJECT_DIR, "02_assembly/01_megahit/quast_report_merged.tsv")
+    singularity: "docker://r-base"
     params:
         sample_names = sample_list,
         assembly_dir = join(PROJECT_DIR, "02_assembly/01_megahit/")
@@ -147,6 +148,7 @@ rule combine_spades_quast_reports_R:
         expand(join(PROJECT_DIR, "02_assembly/02_metaspades/{sample}/quast/report.tsv"), sample=sample_list),
     output:
         join(PROJECT_DIR, "02_assembly/02_metaspades/quast_report_merged.tsv")
+    singularity: "docker://r-base"
     params:
         sample_names = sample_list,
         assembly_dir = join(PROJECT_DIR, "02_assembly/02_metaspades/")

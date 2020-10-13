@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 from os.path import join, abspath, expanduser, exists
 import sys
-localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins
-
+localrules: bwa_index_setup, postprocess, label_bins, extract_DAStool, concoct_extract_bins, postprocess, combine_final_reports
 # TODO
 # bin_idxstats and bin_coverage need to be done with average of group
 # is there a threshold in das tool I'm not aware of yet
@@ -83,7 +82,7 @@ else:
 
 
 # to speedup execution - remove samples that are done completely
-skip_finished = True
+skip_finished = False
 if skip_finished:
     # sample_reads_new = [s for s in sample_reads if (!(exists(join(outdir, s, "final" + s + ".tsv")))) ]
     group_list_new = [s for s in group_list if not exists(join(outdir, s, "final", s + ".tsv")) ]
@@ -574,7 +573,7 @@ rule checkm_DAStool:
     resources:
         mem = 128,
         time = 12
-    threads: 4
+    threads: 8
     params:
         binfolder = join(outdir, "{group}/DAS_tool_bins"),
         checkmfolder = join(outdir, "{group}/DAS_tool/checkm/"),

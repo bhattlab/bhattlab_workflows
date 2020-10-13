@@ -131,8 +131,7 @@ rule bwa_index:
         join(outdir, "{sample}/idx/{sample}.fa.sa")
     log:
         join(outdir, "{sample}/logs/bwa_index.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     resources:
         mem=8,
         time=2
@@ -155,8 +154,7 @@ rule bwa_align:
         join(outdir, "{sample}/{sample}.bam")
     log:
         join(outdir, "{sample}/logs/bwa_mem.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     resources:
         mem=16,
         time=12
@@ -173,8 +171,7 @@ rule bam_idx:
         join(outdir, "{sample}/{sample}_lr.bam.bai") if long_read else join(outdir, "{sample}/{sample}.bam.bai") #choose a long read alignment or short read alignment
     log:
         join(outdir, "{sample}/logs/bamidx.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     threads: 8
     resources:
         mem = 4,
@@ -190,8 +187,7 @@ rule align_lr:
         join(outdir, "{sample}/logs/align_lr.log")
     output:
         join(outdir, "{sample}/{sample}_lr.bam")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     resources:
         mem=48,
         time=6
@@ -659,8 +655,7 @@ rule bam_idxstats:
         join(outdir, "{sample}/{sample}_lr.bam.bai.tsv") if long_read else join(outdir, "{sample}/{sample}.bam.bai.tsv"), #choose a long read alignment or short read alignment,
     log:
         join(outdir, "{sample}/logs/bamidxstats.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     resources:
         mem = 2,
         time = 2
@@ -676,8 +671,6 @@ rule bin_idxstats:
         join(outdir, "{sample}/coverage/raw/{bin}.tsv")
     log:
         join(outdir, "{sample}/logs/coverage_idxstats_{bin}.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
     resources:
         mem = 2,
         time = 6
@@ -693,8 +686,7 @@ rule bin_coverage:
         join(outdir, "{sample}/coverage/{bin}.txt")
     log:
         join(outdir, "{sample}/logs/coverage_{bin}.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/assign_species.yaml"
     resources:
         mem = 2,
         time = 1
@@ -712,8 +704,7 @@ rule fasta_index:
         join(outdir, "{sample}/DAS_tool_bins/{bin}.fa.fai")
     log:
         join(outdir, "{sample}/logs/faidx_{bin}.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/align.yaml"
     resources:
         mem = 8,
         time = 1
@@ -730,8 +721,7 @@ rule kraken2:
         krak_report = join(outdir, "{sample}/classify/{sample}.krak.report")
     log:
         join(outdir, "{sample}/logs/kraken_class.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    singularity: "docker://quay.io/biocontainers/kraken2:2.0.9beta--pl526hc9558a2_0"
     params:
         db = config['kraken2db']
     resources:
@@ -752,8 +742,7 @@ rule label_bins:
         join(outdir, "{sample}/classify/bin_species_calls.tsv")
     log:
         join(outdir, "{sample}/logs/assign_species.log")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    conda: "envs/assign_species.yaml"
     params:
         binfolder = join(outdir, "{sample}/DAS_tool_bins/"),
         custom_taxonomy = custom_taxonomy
@@ -772,8 +761,7 @@ rule postprocess:
     output:
         full = join(outdir, "{sample}/final/{sample}.tsv"),
         simple = join(outdir, "{sample}/final/{sample}_simple.tsv")
-    singularity:
-        "shub://bsiranosian/bin_genomes:binning"
+    singularity: "docker://r-base"
     params:
         bins = lambda wildcards: get_DAStool_bins(wildcards),
         # bins = glob_wildcards(join(outdir, "{sample}/DAS_tool_bins", "{bin}.fa")).bin,

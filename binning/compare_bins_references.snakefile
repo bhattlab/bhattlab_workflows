@@ -41,10 +41,11 @@ def get_samples(sample_file):
             if s[0] == 'Sample' or s[0] == '#Sample' or s[0].startswith('#'):
                 continue
             sample = s[0]
+            # print(sample)
             if sample in sample_list:
-                print(sample)
                 raise ValueError("Non-unique sample encountered!")
-            sample_list.append(sample)
+            if sample != '': 
+                sample_list.append(sample)
     return sample_list
    
 
@@ -94,13 +95,13 @@ bin_location_dict = {"DAS_tool": "DAS_tool_bins",
 bin_location = bin_location_dict[binner_used]
 
 def get_bins(sample):
-    print(sample)
+    # print(sample)
     # remove unbinned
     bins = [b for b in glob_wildcards(join(outdir, sample, bin_location, "{bin}.fa")).bin if not(re.match('.*unbinned.*', b))]
     return bins
 
 sample_bins = {s:get_bins(s) for s in sample_list}
-print(sample_bins)
+# print(sample_bins)
 
 def aggregate_fastani(wildcards):
     return expand(join(outdir, "{sample}/reference_comparison/fastani_{choice}/{bin}_best.txt"),
