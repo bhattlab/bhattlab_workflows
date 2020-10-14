@@ -1,17 +1,16 @@
 # Snakefile for running instrain on many samples
 # mapping to a single set of genomes
+# takes the input of dRep and goes from there
+# works by mapping all reads from all samples against
+# the combined contig set, extracting bam files for each cluster, 
+# and running instrain from that set of bams. 
+from os.path import join, abspath, expanduser, exists, basename
+from os import makedirs
+from pathlib import Path
 localrules: make_cluster_bed, index_cluster_bam, idxstats, drep_fai, bwa_index_contigs
 
-from os.path import join, abspath, expanduser, exists, basename
-
-# starts with...
- # reads 
- # drep contig set
-
-# Does ...
- # maps reads against drep contig set
- # extract mapping read for each cluster set
-
+# get mapping of clusters to fasta files 
+# that define the genome
 def get_cluster_fasta(cluster_file):
     cluster_dict = {}
     with open(cluster_file) as sf:
@@ -27,6 +26,7 @@ def get_cluster_fasta(cluster_file):
             cluster_dict[cluster] = fasta
     return cluster_dict
 
+# get mapping from sample to read files
 def get_sample_reads(sample_file):
     sample_reads = {}
     with open(sample_file) as sf:
@@ -53,39 +53,40 @@ def get_sample_reads(sample_file):
 ###################################################################
 ### CONFIGURATION #################################################
 ###################################################################
-sample_file=config['sample_reads']
-cluster_file=config['cluster_file']
-limit_clusters=config['limit_clusters']
-outdir=config['outdir']
-barcodes=config['barcodes']
-drep_folder=config['drep_folder']
-drep_contigs=config['drep_contigs']
+sample_file = config['sample_reads']
+cluster_file = config['cluster_file']
+limit_clusters = config['limit_clusters']
+outdir = config['outdir']
+barcodes = config['barcodes']
+drep_folder = config['drep_folder']
+drep_contigs = join(drep_folder, 'all_dereplicated_genomes.fa')
 drep_fasta_dir = join(drep_folder, "dereplicated_genomes")
+# read filters
+instrain_min_reads = config['instrain_min_reads']
+instrain_max_reads = config['instrain_max_reads']
 ###################################################################
 
-cluster_to_fasta = get_cluster_fasta(cluster_file)
-cluster_list = list(cluster_to_fasta.keys())
-# limit clusters if desired
-if limit_clusters is not None:
-    limit_list = [int(a) for a in str(limit_clusters).split(",")]
-    cluster_list = [cluster_list[a] for a in limit_list]
+# if no clusters file specified, will use the determination method from 
+# this pipeline which looks at coverage
+if cluster_file is not None:
+    cluster_to_fasta = get_cluster_fasta(cluster_file)
+    cluster_list = list(cluster_to_fasta.keys())
+    # limit clusters if desired
+    if limit_clusters is not None:
+        limit_list = [int(a) for a in str(limit_clusters).split(",")]
+        cluster_list = [cluster_list[a] for a in limit_list]
+else: 
+    cluster_list =[]
+
+# get sample reads and list
 sample_reads = get_sample_reads(sample_file)
 sample_list = list(sample_reads.keys())
-
-
-# max reads that we'll subsample down to if there's more than this many
-instrain_max_reads = 2000000
-# minimum number of filtered reads for a sample to be included in the "filtered"
-#   instrain compare version
-# ALSO minimum number of reads in the bamfile for a sample to be profiled
-instrain_filtered_reads = 20000
-
 
 print()
 print("#########################################")
 print("# cluster list: " + str(cluster_list))
 print("# instrain_max_reads: " + str(instrain_max_reads))
-print("# instrain_filtered_reads: " + str(instrain_filtered_reads))
+print("# instrain_min_reads: " + str(instrain_min_reads))
 print("#########################################")
 print()
 print(' ONLY CONDUCTING INSTRAIN **PROFILE** STEPS IN THIS PIELINE ')
@@ -94,18 +95,31 @@ print()
 rule all:
     input:
         expand(join(outdir, "map_reads_drep_sorted/{sample}.bam"), sample=sample_list),
-        # expand(join(outdir, "map_reads_drep_sorted/{sample}.idxstats"), sample=sample_list),
+        expand(join(outdir, "map_reads_drep_sorted/{sample}.idxstats.agg"), sample=sample_list),
+        join(outdir, "genome_coverage_count.txt"),
+        join(outdir, "top_clusters.txt"),
         expand(join(drep_folder, 'cluster_bedfiles/{cluster}.bed'), cluster=cluster_list),
-        expand(join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam.bai",
+        expand(join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam.bai"),
             cluster=cluster_list, sample=sample_list),
         expand(join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_scaffold_info.tsv"), 
             cluster=cluster_list, sample=sample_list),
+        join(outdir, 'completed.txt')
         # expand(join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_mapping_info.tsv"), 
         #     cluster=cluster_list, sample=sample_list),
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf"), cluster=cluster_list),
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf"), cluster=cluster_list),
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
+
+# make fai if it doesn't exist
+rule drep_fai: 
+    input:
+        drep_contigs=drep_contigs
+    output:
+        fai=drep_contigs + '.fai'
+    shell: """
+        samtools faidx {input}
+    """
 
 rule bwa_index_contigs:
     input:
@@ -157,93 +171,85 @@ rule aggregate_idxstats:
     output:
         idxstats=join(outdir, "map_reads_drep_sorted/{sample}.idxstats.agg")
     params:
-        rl=150
+        rl=int(config['read_length'])
     shell: """
         rl={params.rl}
         echo -e "bin\tlength\tmapped\tunmapped\tcoverage" > {output}
         cat {input} | grep -v "\*" | sed "s/.fa__/.fa\t/g" | cut -f 1,3,4,5 | \
-        awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
-        awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
-        awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
+            awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
+            awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
+            awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
     """
 
-# making the clsuter file
-# to just run outside of snakemake, its easier
-'''
-cd instrain/map_reads_drep_sorted/
-ls *.bam | sed "s/.bam//g" | xargs -P 16 -I {} sh -c "echo {}; samtools idxstats {}.bam > {}.idxstats"
-for i in $(ls *.bam | sed "s/.bam//g"); do
-    echo $i
-    samtools idxstats "$i".bam > "$i".idxstats
-done
-# awk 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$3/$2}' | awk 'BEGIN {FS=OFS="\t"} {$4=sprintf("%.5f",$4)}7' > "$i".idxstats
-
-# needs to be aggregated across the whole genome/bin, if the bin is split 
-# read length for coverage calculation
-rl=150
-# for i in *.idxstats; do echo $i; 
-
-i=map_reads_drep/idxstats/bas_bb_spri_10x.idxstats
-echo -e "bin\tlength\tmapped\tunmapped\tcoverage" > test.agg
-cat "$i" | grep -v "\*" | sed "s/.fa__/.fa\t/g" | cut -f 1,3,4,5 | \
-awk 'BEGIN {FS=OFS="\t"}  { b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i } END {for( i in b){printf("%s",i);for(j=2;j<=NF;j++){printf("%s%s",OFS,a[i,j])} print ""}}' | \
-awk -v rl=$rl 'BEGIN {FS=OFS="\t"} {print $1,$2,$3,$4,$3/$2*rl}' | \
-awk 'BEGIN {FS=OFS="\t"} {$4=sprintf("%.5f",$4)}7' >> test.agg
-
-
-# get clusters with X samples with over 1x coverage
-cat *.idxstats.agg | awk 'BEGIN {FS=OFS="\t"} {if ($4 > 1) print}' | cut -f 1 | sort | uniq -c | sort -rn | tr -s " " | awk 'BEGIN {OFS="\t"} {print $2,$1}' > ../../contig_coverage_count.txt
-cd ../../
-
-# get drep clusters these belong to
-drep_folder=drep
-rm -f contig_clusters.txt
-while read line; do ctg=$(echo $line | cut -f1 -d " "); grep -E  "$ctg.fa|$ctg," "$drep_folder"/data_tables/Wdb.csv | cut -f2 -d "," >> contig_clusters.txt; done  < contig_coverage_count.txt
-
-# put it together in a top_clusters file
-genome_folder="$drep_folder/dereplicated_genomes"
-paste contig_clusters.txt contig_coverage_count.txt | awk -v f=$genome_folder 'BEGIN {FS=OFS="\t"} {print $1,f"/"$2}' > top_clusters_all.txt
-head -n 50 top_clusters_all.txt > top_clusters_50.txt
-head -n 10 top_clusters_all.txt  > top_clusters.txt
-
-Could potentially aggregate acoss memebers of the same primary cluster 
-
-# getting the genome information from each of these clusters 
-echo "cluster" > tmp1
-cat contig_clusters.txt >> tmp1
-# from the binning file and contig_coverage_count.txt
-head -n 1 binning_das_tool/binning_table_all_simple.tsv > tmp2
-while read line; do s=$(echo $line| cut -f 1 -d" " |sed "s/__/\t/g" | sed "s/.fa//g"); grep -w "$s" binning_das_tool/binning_table_all_simple.tsv >> tmp2; done < contig_coverage_count.txt 
-paste tmp1 tmp2 > cluster_matching_bins.txt
-rm tmp1 tmp2
-
-# for the classification    
-
-
-'''
-
-# make fai if it doesn't exist
-rule drep_fai: 
+# genomes that have greater than 1x coverage in greater than two samples
+rule genome_coverage_count: 
     input:
-        drep_contigs=drep_contigs
-    output:
-        fai=drep_contigs + '.fai'
+        expand(join(outdir, "map_reads_drep_sorted/{sample}.idxstats.agg"), sample=sample_list),
+    output: 
+        coverage = join(outdir, "genome_coverage_count.txt"),
+        clusters = join(outdir, "top_clusters.txt")
+    params:
+        idxstats_string = join(outdir, "map_reads_drep_sorted/*.idxstats.agg"),
+        min_coverage = 1,
+        min_samples = 2,
+        drep_folder = join(drep_folder),
+        drep_genome_folder = join(drep_folder, "drep_actual/dereplicated_genomes"),
+        Wdb = join(drep_folder, "drep_actual/data_tables/Wdb.csv")
     shell: """
-        samtools faidx {input}
+        echo -e "genome\tsamples_with_coverage" > {output.coverage}
+        tail -n +2 -q {params.idxstats_string} | \
+            awk 'BEGIN {{FS=OFS="\t"}} {{if ($5 > {params.min_coverage}) print}}' | cut -f 1 | sort | uniq -c |\
+            sort -rn | tr -s " " | awk 'BEGIN {{OFS="\t"}} {{print $2,$1}}' >> {output.coverage}
+
+        # get the drep clusters that correspond to these genomes
+        rm -f {output.clusters}
+        echo -e "cluster\tgenome_fasta" > {output.clusters}
+        while read line; do 
+            ctg=$(echo $line | cut -f1 -d " ")
+            n=$(echo $line | cut -f2 -d " ")
+            if [ $ctg != "genome" ]; then
+                if [ $n -ge {params.min_samples} ]; then
+                    clus=$(grep -E  "$ctg.fa|$ctg," {params.Wdb} | cut -f2 -d ",")
+                    echo -e "$clus\t{params.drep_genome_folder}/$ctg" >> {output.clusters}
+                fi
+            fi
+        done < {output.coverage}
     """
+
+checkpoint decide_clusters:
+    input:
+        rules.genome_coverage_count.output[1]
+    output: 
+        cluster_dir = directory(join(outdir, 'drep_alignment_comparison/cluster_files'))
+    run:
+        cluster_to_fasta = get_cluster_fasta(input[0])
+        cluster_list = list(cluster_to_fasta.keys())
+        makedirs(output.cluster_dir)
+        for c in cluster_list:
+            Path(join(output.cluster_dir, c + '.txt')).touch()
+
+# snakemake function to get the clusters and re-evaluate the DAG
+def aggregate_clusters(wildcards):
+    checkpoint_output = checkpoints.decide_clusters.get(**wildcards).output[0]
+    # print(checkpoint_output)
+    to_return = expand(join(outdir, 'drep_alignment_comparison/cluster_bams/{cluster}'),
+        cluster=glob_wildcards(join(checkpoint_output, "{cluster}.txt")).cluster)
+    clusters = glob_wildcards(join(checkpoint_output, "{cluster}.txt")).cluster
+    print(clusters)
+    return clusters
 
 # make a bedfile for each cluster
-# need a mapping from cluster to fasta
 rule make_cluster_bed:
     input:
-        fai = rules.drep_fai.output
+        fai = rules.drep_fai.output,
+        cluster_file = rules.genome_coverage_count.output[1]
     output: 
         bedfile = join(drep_folder, 'cluster_bedfiles/{cluster}.bed')
     params: 
-        fasta_search = lambda wildcards: cluster_to_fasta[wildcards.cluster],
         bed_folder = join(drep_folder, 'cluster_bedfiles')
     shell: """
-        f=$(basename {params.fasta_search} | sed 's/.fa//g'| sed 's/.fna//g')
+        f1=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
+        f=$(basename $f1 | sed 's/.fa//g'| sed 's/.fna//g')
         grep "$f" {input.fai} | awk 'BEGIN {{OFS=FS="\t"}}  {{ print $1,1,$2 }}' > {output.bedfile}
     """
 
@@ -252,19 +258,18 @@ rule extract_cluster_bam:
     input: 
         bam = join(outdir, "map_reads_drep_sorted/{sample}.bam"),
         bedfile = join(drep_folder, 'cluster_bedfiles/{cluster}.bed'),
-        idxstats_agg = join(outdir, "map_reads_drep_sorted/{sample}.idxstats.agg")
+        idxstats_agg = join(outdir, "map_reads_drep_sorted/{sample}.idxstats.agg"),
+        cluster_file = rules.genome_coverage_count.output[1]
     output:
         bam = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam"),
     threads: 1
     params:
         samtools_threads=3,
-        fasta_search = lambda wildcards: cluster_to_fasta[wildcards.cluster],
-        min_reads = instrain_filtered_reads
+        min_reads = instrain_min_reads
     shell: """
-        f=$(basename {params.fasta_search} | sed 's/.fa//g'| sed 's/.fna//g')
-        # f="NC_017491.1"
+        f1=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
+        f=$(basename $f1 | sed 's/.fa//g'| sed 's/.fna//g')
         rc=$(grep $f {input.idxstats_agg} | cut -f 3)
-        # echo $f
         echo $rc
         if [ $rc -gt {params.min_reads} ]; then
             samtools view -@ {params.samtools_threads} {input.bam} -L {input.bedfile} -f 3 -b > {output.bam}
@@ -327,7 +332,8 @@ rule instrain_profile:
     input:
         bam = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam"),
         bai = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam.bai"),
-        readcounts = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/readcounts/{sample}.txt")
+        readcounts = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/readcounts/{sample}.txt"),
+        cluster_file = rules.genome_coverage_count.output[1]
     output:
         scaffold = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_scaffold_info.tsv"),
         # mapping = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_mapping_info.tsv")
@@ -336,16 +342,16 @@ rule instrain_profile:
         time = lambda wildcards, attempt: 4 ** attempt,
         mem=64
     params:
-        fasta = lambda wildcards: cluster_to_fasta[wildcards.cluster],
         outdir = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}"),
         logfile = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/log/log.log"),
         drep_fasta_folder = join(drep_folder, "dereplicated_genomes"),
-        min_reads = instrain_filtered_reads
+        min_reads = instrain_min_reads
     shell: """
+        f=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
         # skip if readcounts are less than the min reads
         rc="$(cat {input.readcounts})"
         if [ $rc -gt {params.min_reads} ]; then
-            inStrain profile {input.bam} {params.fasta} -o {params.outdir} -p {threads} || true
+            inStrain profile {input.bam} $f -o {params.outdir} -p {threads} || true
             
             # catch error with zero read pairs remaining, and then fake output if thats the case
             if grep -q "no read pairs remain" {params.logfile}; then
@@ -360,3 +366,13 @@ rule instrain_profile:
     """
 
             # echo "# Not more than {params.min_reads} in the input bamfile, sample skipped" > {output.mapping}
+
+rule profile_completed_aggregate:
+    input: 
+        lambda wildcards: expand(join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_scaffold_info.tsv"),
+            sample=sample_list, cluster=aggregate_clusters(wildcards))
+    output: 
+        join(outdir, 'completed.txt')
+    shell: """
+        touch {output}
+    """

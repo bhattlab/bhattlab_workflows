@@ -1,32 +1,46 @@
+# configfile for inStrain pipeline
+# this single config file is used for both the profile and compare steps
+
 # sample_reads: Three column tab delimited file
 # sample_name   reads1,reads2
 sample_reads: sample_reads.txt
+# average read length of your dataset
+# used in coverage calculations 
+read_length: 150
 
-# do the reads in these samples contain barcodes? (10x samples)
-# if you get errors in the bwa alignment step, try setting this to false
-barcodes: True
+# do the reads in these samples contain barcodes? (10x libraries)
+# if you get errors in the bwa alignment step, this could be why
+barcodes: False
 
-# number of reads that need to map to a genome for it to be considered in the "filtered" 
-# instrain compare version. Speeds up execution dramatically
+# number of reads that need to map to a genome for it to be considered in
+# the instrain profile and compare steps. 
 # recommend 20k for most samples, 10k for lower coverage
-compare_filtered_reads: 20000
+# should probably be based on genome size, but this works for now
+instrain_min_reads: 20000
+# Maximum number of reads mapping to a genome before we subsample down 
+# to this number. Drastically speeds up runtime for high-coverage genomes
+# in large samples. 
+instrain_max_reads: 2000000
 
-# cluster_file: list of the clusters from dRep
-# two column tab delimited file
-# cluster_name    genome 
-cluster_file: top_clusters.txt
-# limit to this set of lines in the cluster file, for testing
-# leave blank otherwise. 
-# comma delimited, zero indexed string like this:  0,1,2
+# Determining which clusters to run instrain against.
+# You can either rely on the algorithm in this pipeline, which 
+# looks for clusters that have at least two samples with at least 1x 
+# coverage, or you can provide a custom list of clusters from dRep.
+# To use what's in the pipeline, leave this blank. 
+# To use a custom list, provide a two column tab delimited file:
+# cluster_name    path_to_genome.fa
+cluster_file: 
+# limit to this set of lines in the cluster file, for testing or batching
+# leave blank otherwise. Comma delimited, zero indexed string like this:  0,1,2
 limit_clusters: 
 
 # output directory
 outdir: instrain
 
-# dereplicated contigs from dRep
-# all combined into a multifasta 
-drep_contigs: /oak/stanford/scg/lab_asbhatt/bsiranos/transmission_10x_88/comparison_datasets/olm_2019/drep/dereplicated_genomes/target_genomes.fa
 # result of the dRep pipeline
 # must contain a directory "dereplicated genomes"
 # that has all the dereplicated genomes as individual fasta files
+# and the file "all_dereplicated_genomes.fa"
+# which has all the contigs combined together
 drep_folder: drep
+

@@ -46,6 +46,7 @@ def get_sample_reads(sample_file):
 ###################################################################
 sample_file=config['sample_reads']
 cluster_file=config['cluster_file']
+print(cluster_file)
 limit_clusters=config['limit_clusters']
 outdir=config['outdir']
 barcodes=config['barcodes']
@@ -54,27 +55,34 @@ drep_contigs=config['drep_contigs']
 drep_fasta_dir = join(drep_folder, "dereplicated_genomes")
 ###################################################################
 
+# if no clusters file specified, will use the determination method from 
+# this pipeline which looks at coverage
+if cluster_file is None:
+    cluster_file = join(outdir, "top_clusters.txt")
+
 cluster_to_fasta = get_cluster_fasta(cluster_file)
 cluster_list = list(cluster_to_fasta.keys())
+sample_reads = get_sample_reads(sample_file)
+sample_list = list(sample_reads.keys())
+
 # limit clusters if desired
 if limit_clusters is not None:
     limit_list = [int(a) for a in str(limit_clusters).split(",")]
     cluster_list = [cluster_list[a] for a in limit_list]
-sample_reads = get_sample_reads(sample_file)
-sample_list = list(sample_reads.keys())
 
 # minimum number of filtered reads for a sample to be included in the "filtered"
 # instrain version
-instrain_filtered_reads = config['compare_filtered_reads']
+instrain_min_reads = config['instrain_min_reads']
+
 
 print()
 print("#########################################")
 print("# cluster list: " + str(cluster_list))
-print("# instrain_filtered_reads: " + str(instrain_filtered_reads))
+print("# instrain_min_reads: " + str(instrain_min_reads))
 print("#########################################")
 print()
 print(' ONLY CONDUCTING INSTRAIN **COMPARE** STEPS IN THIS PIELINE ')
-print(' ON SAMPLES THAT HAVE AT LEAST ' + str(instrain_filtered_reads) + ' READS AFTER FILTERING')
+print(' ON SAMPLES THAT HAVE AT LEAST ' + str(instrain_min_reads) + ' READS AFTER FILTERING')
 print()
  
 rule all:
@@ -135,7 +143,7 @@ rule instrain_filter_reads:
     params: 
         tail_string = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/*/output/*_genomeWide_read_report.tsv"),
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}"),
-        min_reads = instrain_filtered_reads,
+        min_reads = instrain_min_reads,
         filtered_reads_file = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/{cluster}_filtered_reads.txt"),
     run:
         filtered_reads = {}
@@ -156,7 +164,7 @@ rule instrain_filter_reads:
         outf = output[0]
         with open(outf, 'w') as outf:
             for k,v in filtered_reads.items():
-                if (int(float(v)) >= instrain_filtered_reads):
+                if (int(float(v)) >= instrain_min_reads):
                     outf.write('\t'.join([k,v]) + '\n')
         # write out all samples
         outf = output[1]
