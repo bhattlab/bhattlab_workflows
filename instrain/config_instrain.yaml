@@ -1,7 +1,7 @@
 # configfile for inStrain pipeline
 # this single config file is used for both the profile and compare steps
 
-# sample_reads: Three column tab delimited file
+# sample_reads: Two column tab delimited file, with reads separated by commas
 # sample_name   reads1,reads2
 sample_reads: sample_reads.txt
 # average read length of your dataset
