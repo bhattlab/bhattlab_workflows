@@ -336,7 +336,7 @@ rule instrain_profile:
         cluster_file = rules.genome_coverage_count.output[1]
     output:
         scaffold = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_scaffold_info.tsv"),
-        # mapping = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_mapping_info.tsv")
+        mapping = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_mapping_info.tsv")
     threads: 4
     resources: 
         time = lambda wildcards, attempt: 4 ** attempt,
@@ -362,10 +362,10 @@ rule instrain_profile:
             fi
         else
             echo "# Not more than {params.min_reads} in the input bamfile, sample skipped" > {output.scaffold}
+            echo "# Not more than {params.min_reads} in the input bamfile, sample skipped" > {output.mapping}
             fi
     """
 
-            # echo "# Not more than {params.min_reads} in the input bamfile, sample skipped" > {output.mapping}
 
 rule profile_completed_aggregate:
     input: 
