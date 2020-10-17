@@ -187,7 +187,7 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}"),
         sed_string = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/"),
-        threads_actual = 24
+        threads_actual = 8
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
