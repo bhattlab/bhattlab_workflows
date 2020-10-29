@@ -7,7 +7,7 @@
 from os.path import join, abspath, expanduser, exists, basename
 from os import makedirs
 from pathlib import Path
-localrules: make_cluster_bed, index_cluster_bam, idxstats, drep_fai, bwa_index_contigs
+localrules: make_cluster_bed, index_cluster_bam, idxstats, aggregate_idxstats, drep_fai, bwa_index_contigs, decide_clusters, genome_coverage_count, profile_completed_aggregate
 
 # get mapping of clusters to fasta files 
 # that define the genome
@@ -175,7 +175,7 @@ rule aggregate_idxstats:
     shell: """
         rl={params.rl}
         echo -e "bin\tlength\tmapped\tunmapped\tcoverage" > {output}
-        cat {input} | grep -v "\*" | sed "s/.fa__/.fa\t/g" | cut -f 1,3,4,5 | \
+        cat {input} | grep -v "\*" | sed "s/__/\t/g" | cut -f 1,3,4,5 | \
             awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
             awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
             awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}

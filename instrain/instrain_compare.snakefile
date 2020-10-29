@@ -51,7 +51,7 @@ limit_clusters=config['limit_clusters']
 outdir=config['outdir']
 barcodes=config['barcodes']
 drep_folder=config['drep_folder']
-drep_contigs=config['drep_contigs']
+drep_contigs = join(drep_folder, 'all_dereplicated_genomes.fa')
 drep_fasta_dir = join(drep_folder, "dereplicated_genomes")
 ###################################################################
 
