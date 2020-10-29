@@ -293,7 +293,12 @@ rule subsample_bam:
         max_reads=instrain_max_reads,
     threads: 4
     shell: """
-        samtools flagstat {input} | grep "read1" | cut -f 1 -d " " > {output.readcounts}
+        if [ -s {input} ]; then
+            samtools flagstat {input} | grep "read1" | cut -f 1 -d " " > {output.readcounts}
+        else
+            echo "0" > {output.readcounts}
+        fi
+        
         rc=$(cat {output.readcounts})
         echo "RC: " $rc
         # if greater than 2 million reads, subsample
