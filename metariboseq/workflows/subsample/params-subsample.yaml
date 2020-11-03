@@ -1,0 +1,7 @@
+inputPrefix: /oak/stanford/scg/lab_asbhatt/cosn/metariboseq/samples/
+outputPrefix: /oak/stanford/scg/lab_asbhatt/cosn/metariboseq/samples-test/
+subSamplePercent: ".01"
+sampleSpecs:
+    - name: sampleA
+      metagenomic: SampleADNA
+      metariboseq: BrayonRibo_1_S7_R1_001

@@ -1,0 +1,21 @@
+inputPrefix: /oak/stanford/scg/lab_asbhatt/cosn/metariboseq/samples/
+resultsPrefix: /oak/stanford/scg/lab_asbhatt/cosn/metariboseq/results/
+trimGaloreOptions: "--cores 4 -q 30 --illumina"
+spadesOptions: "--threads=4 --memory=96"
+alignmentMemory: "96 GB"
+assemblyMemory: "96 GB"
+bowtieIndexOptions: "--threads 4"
+bowtieAlignmentOptions: "--threads 4"
+sampleSpecs:
+    - name: sampleA
+      metagenomic: SampleADNA
+      metariboseq: BrayonRibo_1_S7_R1_001
+    - name: sampleB
+      metagenomic: SampleBDNA
+      metariboseq: SampleBRibo
+    - name: sampleC
+      metagenomic: SampleCDNA
+      metariboseq: SampleCRibo
+    - name: sampleD
+      metagenomic: SampleDDNA
+      metariboseq: SampleDRibo

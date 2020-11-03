@@ -1,0 +1,28 @@
+Bootstrap: docker
+From: cosmosnicolaou/bhattlab-metariboseq:latest
+
+%environment
+    export LC_ALL=C
+    export HOME=/opt/labmember
+    export USER=labmember
+    export PATH=$HOME/bin:$PATH
+    # >>> conda initialize >>>
+    # !! Contents below are copied from 'conda init's changes to bashrc !!
+    __conda_setup="$('/opt/labmember/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+    if [ $? -eq 0 ]; then
+        eval "$__conda_setup"
+    else
+        if [ -f "/opt/labmember/miniconda3/etc/profile.d/conda.sh" ]; then
+            . "/opt/labmember/miniconda3/etc/profile.d/conda.sh"
+        else
+            export PATH="/opt/labmember/miniconda3/bin:$PATH"
+        fi
+    fi
+    unset __conda_setup
+    # <<< conda initialize <<<
+    conda activate metariboseq
+
+%help
+    This container supports the metariboseq workflow.
+    See <link-to-repo/paper>
+    
