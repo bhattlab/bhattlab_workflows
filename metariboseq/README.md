@@ -77,9 +77,9 @@ to work with. See the `subsample` directory for details. The `run-nextflow.sh`
 script runs nextflow with appropriate parameter files and configuration
 to generate the subsampled data.
 
-## Metariboseq Workflow
+## Metariboseq and Analysis Workflows
 
-The `run-nextflow.sh` script accepts one of the following parameters:
+The `run-nextflow.sh` scripts accepts one of the following parameters:
 
 - `test`: runs with subsampled test data
 - `scg-sampleA`: runs on scg for sampleA
@@ -87,5 +87,11 @@ The `run-nextflow.sh` script accepts one of the following parameters:
 
 Making changes to the parameter files should be fairly self-evident.
 
-TODO - describe the actual workflow in a little more detail
-than the inline comments.
+## Metariboseq Nextflow Workflow
+
+The `nextflow` execution graph is complicated by the need to create
+assemblies for the `metagenomic` files, but not for the `metariboseq`
+files and to then build indices and aligments using the `metagenomic`
+assembly. The actual `.nf` file is commented, but this is really the
+only complication. In terms of understanding the nextflow itself
+the documentation and tutorials are (nextflow.io) are reasonably clear.

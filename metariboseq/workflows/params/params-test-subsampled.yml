@@ -6,6 +6,7 @@ alignmentMemory: "32 GB"
 assemblyMemory: "32 GB"
 bowtieIndexOptions: "--threads 4"
 bowtieAlignmentOptions: "--threads 4"
+analysisScript: "/oak/stanford/scg/lab_asbhatt/cosn/bhattlab_workflows/metariboseq/workflows/analysis/plotVisualsRibo.R"
 sampleSpecs:
     - name: sampleA
       metagenomic: SampleADNA

@@ -6,16 +6,8 @@ alignmentMemory: "96 GB"
 assemblyMemory: "96 GB"
 bowtieIndexOptions: "--threads 4"
 bowtieAlignmentOptions: "--threads 4"
+analysisScript: "/oak/stanford/scg/lab_asbhatt/cosn/bhattlab_workflows/metariboseq/workflows/analysis/plotVisualsRibo.R"
 sampleSpecs:
     - name: sampleA
       metagenomic: SampleADNA
       metariboseq: BrayonRibo_1_S7_R1_001
-    - name: sampleB
-      metagenomic: SampleBDNA
-      metariboseq: SampleBRibo
-    - name: sampleC
-      metagenomic: SampleCDNA
-      metariboseq: SampleCRibo
-    - name: sampleD
-      metagenomic: SampleDDNA
-      metariboseq: SampleDRibo

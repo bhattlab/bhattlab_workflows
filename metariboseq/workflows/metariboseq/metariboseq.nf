@@ -23,11 +23,11 @@ process adapterTrim  {
 
     output:
         tuple val("${sample.name}"), sample, path("${sample.file}_trimmed.fq.gz") into trimmedAll
-        path("${sample.file}.fq.gz_trimming_report.txt")
+        path ("${sample.file}.fq.gz_trimming_report.txt")
 
     shell:
     '''
-    trim_galore  !{params.inputPrefix}/!{sample.file}.fq.gz
+    trim_galore !{params.inputPrefix}/!{sample.file}.fq.gz
     '''
 }
 
@@ -44,7 +44,7 @@ process metagenomicAssembly {
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple name, sample, trimmed from toAssemble
+    tuple name, sample, path(trimmed) from toAssemble
 
     output:
     tuple name, sample, path("${sample.name}-assembly") into assembled
@@ -56,14 +56,15 @@ process metagenomicAssembly {
     '''
 }
 
+// Build a bowtie index for every assembly.
 process bowtieIndex {
     publishDir "${params.resultsPrefix}/${sample.name}-assembly/", mode: "copy"
 
     input:
-    tuple name, sample, assembly from assembled
+    tuple name, sample, path(assembly) from assembled
 
     output:
-    tuple name, sample, assembly, path("contigs.*") into assembledAndIndexed
+    tuple name, sample, path(assembly), path("contigs.*") into assembledAndIndexed
     path("contigs.*")
 
     shell:
@@ -86,12 +87,14 @@ toAlign = alignmentCandidates.combine(assembledAndIndexed, by: [0]).map {
     [ it[1], it[2], it[4], it[5] ]
 }
 
+// Alignment every input file, metagenomic and metariboseq against the
+// assembly.
 process alignment {
     memory "${params.alignmentMemory}"
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple sample, trimmed, assembly, path(index) from toAlign
+    tuple sample, path(trimmed), path(assembly), path(index) from toAlign
 
     output:
     path("${sample.file}.bam")
