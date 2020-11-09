@@ -1,0 +1,13 @@
+Bootstrap: docker
+From: bioconductor/bioconductor_docker:RELEASE_3_12
+
+%environment
+
+%post
+    R -e 'BiocManager::install("riboSeqR")'
+    R -e 'BiocManager::install("Rsamtools")'
+
+%help
+    This container supports the metariboseq workflow.
+    See <link-to-repo/paper>
+    
