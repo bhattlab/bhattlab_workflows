@@ -3,8 +3,11 @@ import random
 import string
 import re
 # compare bins against reference collection, do dotplots and etc
-# takes in the end result of binnig 
-# and edits the output tables?
+# takes in the end result of binning 
+# compares against GENBANK and UHGG database
+# first with MASH to find the top 100 candidates, then fastani to narrow down to 10, 
+# then careful nucmer alignments and dotplots on the final 10. 
+
 
 # function from other binning pipeline to get assemblies and reads
 # don't need unless we're doing snp comparisons
@@ -67,7 +70,7 @@ if outdir[0] == '~':
 outdir = abspath(outdir)
 
 # keep top mash references
-keep_mash_matches = 50
+keep_mash_matches = 100
 keep_fastani_matches = 10
 # paramaters for fastani
 minFrag = 5
@@ -79,11 +82,13 @@ genbank_names_file = "/labs/asbhatt/bsiranos/databases/genbank_nov2019/fixed_org
 mag_sketch_file = "/labs/asbhatt/data/MAG_databases/mag_mash.msh"
 # mag_asm_file = "/labs/asbhatt/bsiranos/databases/genbank_nov2019/assembly_summary_chromosome_latest_combined.txt"
 mag_names_file = "/labs/asbhatt/data/MAG_databases/mag_mash_names.txt"
-db_choices = ['genbank', 'mags']
+uhgg_sketch_file = "/labs/asbhatt/data/MAG_databases/uhgg/uhgg_10k.msh"
+uhgg_names_file = "/labs/asbhatt/data/MAG_databases/uhgg/uhgg_mash_names.txt"
+db_choices = ['genbank', 'uhgg']
 sketch_files = {'genbank': genbank_sketch_file,
-                'mags': mag_sketch_file}
+                'uhgg': uhgg_sketch_file}
 names_files = {'genbank': genbank_names_file,
-               'mags': mag_names_file}
+               'uhgg': uhgg_names_file}
 
 # set binner used from the name of the folder
 if (exists(join(outdir, sample_list[0], "DAS_tool_bins"))):
