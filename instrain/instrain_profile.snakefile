@@ -175,10 +175,20 @@ rule aggregate_idxstats:
     shell: """
         rl={params.rl}
         echo -e "bin\tlength\tmapped\tunmapped\tcoverage" > {output}
-        cat {input} | grep -v "\*" | sed "s/__/\t/g" | cut -f 1,3,4,5 | \
-            awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
-            awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
-            awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
+        # need something to check if were using the output of the drep pipeline
+        # where contigs of the same genome are indicated with __ designation
+        # or a single reference genome, where they will probbaly not have that spec
+        if grep "__" {input}; then 
+            cat {input} | grep -v "\*" | sed "s/__/\t/g" | cut -f 1,3,4,5 | \
+                awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
+                awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
+                awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
+        else 
+            cat {input} | grep -v "\*" | \
+                awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
+                awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
+                awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
+        fi
     """
 
 # genomes that have greater than 1x coverage in greater than two samples
@@ -249,7 +259,7 @@ rule make_cluster_bed:
         bed_folder = join(drep_folder, 'cluster_bedfiles')
     shell: """
         f1=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
-        f=$(basename $f1 | sed 's/.fa//g'| sed 's/.fna//g')
+        f=$(basename $f1 | sed 's/.fasta//g' | sed 's/.fna//g'| sed 's/.fa//g')
         grep "$f" {input.fai} | awk 'BEGIN {{OFS=FS="\t"}}  {{ print $1,1,$2 }}' > {output.bedfile}
     """
 
@@ -268,9 +278,10 @@ rule extract_cluster_bam:
         min_reads = instrain_min_reads
     shell: """
         f1=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
-        f=$(basename $f1 | sed 's/.fa//g'| sed 's/.fna//g')
+        f=$(basename $f1 | sed 's/.fasta//g' | sed 's/.fna//g'| sed 's/.fa//g')
+        echo $f
         rc=$(grep $f {input.idxstats_agg} | cut -f 3)
-        echo $rc
+        echo "Readcounts in idxstats: {wildcards.sample} {wildcards.cluster} $rc"
         if [ $rc -gt {params.min_reads} ]; then
             samtools view -@ {params.samtools_threads} {input.bam} -L {input.bedfile} -f 3 -b > {output.bam}
         else
@@ -298,7 +309,7 @@ rule subsample_bam:
         else
             echo "0" > {output.readcounts}
         fi
-        
+
         rc=$(cat {output.readcounts})
         echo "RC: " $rc
         # if greater than 2 million reads, subsample

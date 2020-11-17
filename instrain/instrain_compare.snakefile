@@ -187,12 +187,11 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}"),
         sed_string = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/"),
-        threads_actual = 8
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
             # echo $files
-            inStrain compare -i $files -o {params.outdir} -p {params.threads_actual} --store_mismatch_locations
+            inStrain compare -i $files -o {params.outdir} -p {threads} --store_mismatch_locations
         else
             # not enough samples to run this pipeline
             echo "NOT ENOUGH FILTERD SAMPLES PRESENT" > {output}
