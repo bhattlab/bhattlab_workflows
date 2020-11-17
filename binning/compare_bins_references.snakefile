@@ -127,8 +127,8 @@ rule all:
             # sample=sample_list, choice=db_choices, bin=lambda wildcards: sample_bins[wildcards.sample]),
         expand(join(outdir, "{sample}/reference_comparison/{choice}_done.txt"), 
             sample=sample_list, choice=db_choices),
-        # expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
-        #     sample=sample_list, choice=db_choices),
+        expand(join(outdir, "{sample}/reference_comparison/nucmer_top_{choice}.txt"), 
+            sample=sample_list, choice=db_choices),
 
 
 # compare to all reference sketch with MASH
@@ -143,7 +143,10 @@ rule compare_to_references_mash:
         best_references = join(outdir, "{sample}/reference_comparison/mash_{choice}/{bin}_mash_dist_best_reference_names.tsv"),
     params:
         keep_mash_matches = keep_mash_matches
-    threads: 1
+    threads: 4
+    resources:
+        mem = 64, 
+        time = 1
     singularity:
         "docker://quay.io/biocontainers/mash:2.2.2--h3d38be6_0"
     shell: """
