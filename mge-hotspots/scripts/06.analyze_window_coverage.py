@@ -22,7 +22,8 @@ replaced as follows:
    support python 3.8.
 
 Both of the above generate the same values as R code to within about
-10 decimal places as verified by the compare_results.py script.
+10 decimal places which was determined by comparing the results of
+the R pipeline with this new python implementation.
 
 """
 
