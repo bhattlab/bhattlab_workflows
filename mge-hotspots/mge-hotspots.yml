@@ -1,0 +1,10 @@
+name: mge-hotspots
+channels:
+  - bioconda
+dependencies:
+  - python=3.8
+  - pandas
+  - scipy
+  - bedtools
+  - samtools
+  - matplotlib
