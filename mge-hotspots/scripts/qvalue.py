@@ -79,7 +79,7 @@ class QValue(object):
 
         if lambdas is None:
             epsilon = 1e-8
-            lambdas = scipy.arange(0,0.9+1e-8,0.05)
+            lambdas = scipy.arange(0,0.9+epsilon,0.05)
 
         if len(lambdas)>1 and len(lambdas)<4:
             raise ValueError("""if length of lambda greater than 1, you need at least 4 values""")

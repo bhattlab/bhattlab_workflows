@@ -1,11 +1,14 @@
 #!/usr/bin/python3
+'''
+This script creates per-genome input files for the bedtools makewindows command.
+'''
 import argparse
 import os
 import subprocess
 
-import paths
-
 import pandas as pd
+
+import paths
 
 parser = argparse.ArgumentParser(
     description='Determine the lengths of the genomes for a given set of species')

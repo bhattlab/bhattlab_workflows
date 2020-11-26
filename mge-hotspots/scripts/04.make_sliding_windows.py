@@ -1,10 +1,13 @@
 #!/usr/bin/python3
+'''
+This scripts uses bedtools makewindows to create per-genome sliding windows.
+'''
 import argparse
 import subprocess
 
-import paths
-
 import pandas as pd
+
+import paths
 
 # sliding windows of size 500 at intervals of 50 bp see generateWindows
 # below.

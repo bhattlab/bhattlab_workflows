@@ -3,9 +3,9 @@
 import argparse
 import sys
 
-import paths
-
 import pandas as pd
+
+import paths
 
 parser = argparse.ArgumentParser(
     description="Compare hotspot results")

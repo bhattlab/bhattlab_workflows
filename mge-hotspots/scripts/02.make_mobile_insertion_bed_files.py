@@ -1,12 +1,16 @@
 #!/usr/bin/python3
+'''
+This script creates separate .bed for all reads as well as for those
+categorised as being 'mobile'.
+'''
 
 import argparse
 import os
 import sys
 
-import paths
-
 import pandas as pd
+
+import paths
 
 parser = argparse.ArgumentParser(
     description='Process mobile insertions to create bed files')

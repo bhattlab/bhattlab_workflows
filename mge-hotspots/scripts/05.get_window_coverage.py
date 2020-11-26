@@ -1,10 +1,13 @@
 #!/usr/bin/python3
+'''
+This script uses bedtools coverage to produce per sample coverage counts
+'''
 import argparse
 import subprocess
 
-import paths
-
 import pandas as pd
+
+import paths
 
 parser = argparse.ArgumentParser(
     description='Determine genome coverage of insertions. ie. count insertions per sliding window')

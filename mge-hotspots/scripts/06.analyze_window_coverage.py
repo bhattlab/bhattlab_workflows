@@ -8,7 +8,6 @@ Mobile genetic element insertions drive antibiotic resistance across pathogens
 Matthew G. Durrant, Michelle M. Li, Ben Siranosian, Ami S. Bhatt
 bioRxiv 527788; doi: https://doi.org/10.1101/527788
 
-
 There are some differences in the details of the analysis required by
 the translation to python. In particular, the R poisson.test function
 is not available, neither is biconductor's qvalue package. They are
@@ -31,14 +30,13 @@ import argparse
 import subprocess
 import sys
 
-import paths
-import qvalue
-
 import numba
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
+import paths
+import qvalue
 
 parser = argparse.ArgumentParser(
     description="Analyze genome coverage of mobile insertions to determine 'hotspots'")
@@ -66,7 +64,7 @@ def read_window_counts(outputs, species):
     counts.columns = ('contig', 'start', 'end', 'count')
     return counts
 
-def gen_global_background_coverage_rate(insertions, counts):
+def calc_global_background_coverage_rate(counts, insertions):
     '''
     calculate the background coverage rate, ie. total insertions
     divided by the genome-length.
@@ -75,28 +73,36 @@ def gen_global_background_coverage_rate(insertions, counts):
     # The length of a each contig is the maximum end position for its windows;
     # these are then summed to obtain the length of the entire genome.
     genome_length = counts.groupby(by='contig').max().end.sum()
-    print(total_insertions, genome_length, total_insertions/genome_length)
     return float(total_insertions) / float(genome_length)
 
 @numba.jit(nopython=True)
 def local_window_numba(starts, w_start, w_end, bg_start, bg_end):
     '''
-    Implement the window bounds check for gen_local_background_coverage_rate
+    Implement the window bounds check for calc_local_background_coverage_rate
     using numba for a large speed up over interpreted python.
+    NOTE: this is O(n^2) because of the outer loop in
+    calc_local_background_coverage_rate and the inner loop but merging
+    them into a single loop is slower because the custom code to do so
+    is all in python rather than the jit'ed code or in pandas.DataFrame.apply.
     '''
     nrows = 0
     for i in range(len(starts)):
-        if ( ((starts[i] < w_start) & (starts[i] > bg_start)) | 
+        if starts[i] < bg_start:
+            continue
+        if ( ((starts[i] > bg_start) & (starts[i] < w_start)) | 
                ((starts[i] > w_end) & (starts[i] < bg_end))):
             nrows += 1
+            continue
+        if starts[i] > bg_end:
+            break
     return nrows
 
-def gen_local_background_coverage_rate(insertions, contig, window_start, window_end, width):
+def calc_local_background_coverage_rate(counts, sorted_starts, width):
     '''
-    Calculate the background coverage rate for the portion of
-    the genome immediately surrounding the specified window.
-    Graphically, the regions used to compute the coverage
-    are shown by +++ below.
+    Calculate the local background coverage rate for every window in counts.
+    This is defined as the rate for the portion of the genome immediately
+    surrounding the specified window. Graphically, the regions used to compute
+    the coverage are shown by +++ below.
 
        background_start
        +++
@@ -105,73 +111,47 @@ def gen_local_background_coverage_rate(insertions, contig, window_start, window_
        window_end
        +++
        window_end
+
+    NOTE: the insertions must be sorted.
     '''
-    bg_start = window_start - (width / 2)
-    bg_end = window_end + (width / 2)
 
-    # NOTE: the combination of local_background_coverage_rate and
-    # this function is O(n^2) since it iterates over all of the
-    # insertion data for every count window even though only
-    # local data is required. Once it's all working, revisit this
-    # to fold the two loops into one approximately as follows:
-    # - sort both tables by start pos
-    # - for every row in the counts table, examine the corresponding
-    #   bounded set of rows in the insertions table.
-
-# TESTING ONLY...
-#    insertions = insertions[insertions.contig==contig]
-
-    hits = local_window_numba(
-        insertions['start'].to_numpy(),
-        window_start,
-        window_end,
-        bg_start,
-        bg_end,
-    )
-    return hits / width
-
-def local_background_coverage_rate(counts, insertions, width):
-    '''
-    apply gen_local_background_coverate_rate to counts for the specified
-    insertions and width. See gen_local_background_coverate_rate.
-    '''
+    # Note that the combination of this apply and iteration over all
+    # insertion starts is O(n^2).
     return counts.apply(lambda window:
-        gen_local_background_coverage_rate(
-            insertions,
-            window.contig,
+        local_window_numba(    
+            sorted_starts,
             window.start,
             window.end,
-            width), axis='columns')
+            window.start - (width/2),
+            window.end + (width/2)) / width, axis='columns')
 
-def analyze_species(outputs, species, genome):
-    insertions = read_mobile_insertions(outputs, species)
-    counts = read_window_counts(outputs, species)
-
-    counts['rate_bg'] = gen_global_background_coverage_rate(
-        insertions, counts)
-
-    counts['rate_1kb'] = local_background_coverage_rate(
-        counts, insertions, 1000)
-
-    counts['rate_10kb']  = local_background_coverage_rate(
-        counts, insertions, 10000)
-
+def analyze_contig(counts, insertions):
+    counts['rate_bg'] = calc_global_background_coverage_rate(counts, insertions)
+    starts = insertions['start'].to_numpy()
+    counts['rate_1kb'] = calc_local_background_coverage_rate(counts, starts, 1000)
+    counts['rate_10kb']  = calc_local_background_coverage_rate(counts, starts, 10000)
     counts['max_rate'] = counts.loc[:,('rate_bg', 'rate_1kb', 'rate_10kb')].max(axis='columns')
-
-    counts['pvalue'] = pvalues(
-        counts['count'].to_numpy(),
-        counts['start'].to_numpy(),
-        counts['end'].to_numpy(),
-        counts['max_rate'].to_numpy(),
-    )
-
-    # NOTE: does this need to be grouped by contig?
+    counts['pvalue'] = pvalues(counts)
     counts['qval'] = qvalues(counts['pvalue'])
     counts['signif'] = counts['qval'] <= 0.05
     counts['window_order'] = counts.index + 1
-    return {"counts": counts, "species": species, "genome": genome}
+    return counts
 
-def pvalues(count, start, end, max_rate):
+def analyze_species(outputs, species, genome):
+    insertions = read_mobile_insertions(outputs, species)
+    insertions = insertions.sort_values(['contig','start', 'end', 'cluster'], ascending=True)
+    counts = read_window_counts(outputs, species)
+
+    results = pd.DataFrame()
+    for contig, counts_by_contig in counts.groupby('contig'):
+        analyze_contig(
+            counts_by_contig,
+            insertions.loc[insertions['contig']==contig])
+        results = pd.concat([results, counts_by_contig])
+
+    return {"counts": results, "species": species, "genome": genome}
+
+def pvalues(counts):#, start, end, max_rate):
     '''
     Calculate the probability that the observed count is greater than the
     average for the interval (hence interval * per base average) assuming a
@@ -180,12 +160,7 @@ def pvalues(count, start, end, max_rate):
     with the poisson distribution as the test-statistic when
     computing q-values.
     '''
-    n = len(count)
-    pv = np.zeros(n)
-    for i in range(n):
-        pv[i] = 1 - stats.poisson.cdf(count[i]-1, (end[i]-start[i])*max_rate[i])
-
-    return pv
+    return  1 - stats.poisson.cdf(counts['count']-1, (counts['end']-counts['start'])*counts['max_rate'])
 
 def qvalues(pv):
     '''
@@ -194,15 +169,15 @@ def qvalues(pv):
     estimator = qvalue.QValue(pv)
     return estimator.qvalue()
 
+def output_results(outputs, counts, species, genome):
+    filename = outputs.significance_results_filename(species, genome)
+    counts.to_csv(filename, index=False, sep='\t')
+
 results = species.apply(lambda row: 
     analyze_species(
         outputs,
         row.species,
         row.genome), axis='columns')
-
-def output_results(outputs, counts, species, genome):
-    filename = outputs.significance_results_filename(species, genome)
-    counts.to_csv(filename, index=False, sep='\t')
 
 for r in results:
     output_results(outputs, r['counts'], r['species'], r['genome'])
