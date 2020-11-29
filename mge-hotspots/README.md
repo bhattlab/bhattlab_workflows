@@ -17,6 +17,9 @@ the results should be placed. The inputs are as follows:
 2. a directory with reference genomes for the species being analyzed
 3. the genotypes and clusters files produced by mge-finder.
 
+The `conda-environment.yml` file lists the packages required to create
+a `minconda` environment suitable for running the analysis.
+
 These are all tsv's, and the headers are as follows:
 
 ```
