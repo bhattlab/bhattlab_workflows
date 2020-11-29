@@ -8,3 +8,4 @@ dependencies:
   - bedtools
   - samtools
   - matplotlib
+  - nextflow

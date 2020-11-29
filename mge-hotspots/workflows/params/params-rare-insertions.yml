@@ -1,0 +1,5 @@
+speciesInput: /oak/stanford/scg/lab_asbhatt/mdurrant/PROJECTS/INSERTOME/00.REFERENCE_TABLES/keep_species.tsv
+referenceDir: /oak/stanford/scg/lab_asbhatt/mdurrant/PROJECTS/INSERTOME/00.REFERENCE_TABLES/genomes/
+genotypesInput: /oak/stanford/scg/lab_asbhatt/mdurrant/PROJECTS/INSERTOME/12.RARE_INSERTION_ANALYSIS/INPUT/all_genotypes.tsv
+clustersInput: /oak/stanford/scg/lab_asbhatt/mdurrant/PROJECTS/INSERTOME/12.RARE_INSERTION_ANALYSIS/INPUT/all_summarize_clusters.tsv
+resultsPrefix: /oak/stanford/scg/lab_asbhatt/cosn/mge-hotspots/results/rare_insertion_analysis
