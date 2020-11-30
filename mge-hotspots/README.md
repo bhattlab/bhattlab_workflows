@@ -20,35 +20,38 @@ the results should be placed. The inputs are as follows:
 The `conda-environment.yml` file lists the packages required to create
 a `minconda` environment suitable for running the analysis.
 
-These are all tsv's, and the headers are as follows:
+These are all tsv's, and the columns are as follows. Note only
+those marked with a * are used directly by the python scripts.
 
 ```
-species tsv:
-    species
-    genome
+species tsv file:
+  * species
+  * genome
     species_abbrev
     genome_abbrev
     name_abbrev
     color
     genome_name
+```
 
-genotype tsv:
-    species
-    sample
+```
+genotype tsv file:
+  * species 
+  * sample
     pair_id
-    contig
-    pos_3p
-    pos_5p
+  * contig
+  * pos_3p
+  * pos_5p
     seqid
-    cluster
-    group
+  * cluster
+  * group
     conf
 
 clusters tsv:
-    species
-    cluster
-    group
-    num_unique_sites_all
+  * species
+  * cluster
+  * group
+  * num_unique_sites_all
     num_unique_sites_unambig
     num_unique_seqs
     mean_length

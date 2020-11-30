@@ -32,7 +32,10 @@ def coverage(windows_file, insertions_file, coverage_file):
         "-b", insertions_file,
         ]
     out = open(coverage_file, "w")
-    subprocess.run(args, stdout=out)
+    result = subprocess.run(args, stdout=out)
+    if result.returncode != 0:
+        print(result)
+        result.check_returncode()
     out.close()
     
 species.apply(lambda row: 

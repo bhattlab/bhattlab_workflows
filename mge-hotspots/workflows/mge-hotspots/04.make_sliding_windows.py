@@ -41,7 +41,9 @@ def generateWindows(lengths_filename, windows_filename, size, step):
         '-g', lengths_filename,
         ]
     result = subprocess.run(args, stdout=outFile)
-    print(result)
+    if result.returncode != 0:
+        print(result)
+        result.check_returncode()
     outFile.close()
 
 species.apply(lambda row: 

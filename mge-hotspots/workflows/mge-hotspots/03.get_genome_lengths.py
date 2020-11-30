@@ -5,6 +5,7 @@ This script creates per-genome input files for the bedtools makewindows command.
 import argparse
 import os
 import subprocess
+import sys
 
 import pandas as pd
 
@@ -36,6 +37,9 @@ def genomeLength(genome_file, lengths_file):
     args = ["samtools", "faidx", "-o", "-", genome_file]
     result = subprocess.run(args, encoding='utf-8', capture_output=True)
     fields = result.stdout.split('\t')
+    if len(fields) != 2:
+        print(result)
+        result.check_returncode()
     f = open(lengths_file, "w")
     f.write(result.stdout)
     f.close()

@@ -1,5 +1,5 @@
-speciesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/rare-insertions/keep_species.tsv
-referenceDir: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/00.genom/
-genotypesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/03.results/stm_lt2_ref/02.genotype.stm_lt2_ref.tsv
-clustersInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/03.results/stm_lt2_ref/03.summarize.stm_lt2_ref.clusters.tsv
+speciesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/keep_species.tsv
+referenceDir: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/00.genome/
+genotypesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/03.results/stm_lt2_ref/02.genotype.stm_lt2_ref-with-species.tsv
+clustersInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/stm_20x/03.results/stm_lt2_ref/03.summarize.stm_lt2_ref-with-species.clusters.tsv
 resultsPrefix: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/results/stm_20x/
