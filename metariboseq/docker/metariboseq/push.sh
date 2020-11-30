@@ -1,1 +1,1 @@
-docker push --disable-content-trust=false cosmosnicolaou/bhattlab-metariboseq:latest
+docker push ghcr.io/bhattlab/bhattlab-metariboseq:latest

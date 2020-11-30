@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: cosmosnicolaou/bhattlab-metariboseq:latest
+From: ghcr.io/bhattlab/bhattlab-metariboseq:latest
 
 %environment
     export LC_ALL=C

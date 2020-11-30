@@ -1,1 +1,1 @@
-docker build --squash -t cosmosnicolaou/bhattlab-ubuntu-focal-base .
+docker build --squash -t ghcr.io/bhattlab/bhattlab-ubuntu-focal-base .
