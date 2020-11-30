@@ -1,0 +1,8 @@
+#configfile for metaphlan3 workflow
+
+outdir: metaphlan3
+db: /labs/asbhatt/bsiranos/databases/metaphlan_databases/mpa_v30_CHOCOPhlAn_201901/
+
+# sample file: tsv with sample information in first column
+# SAMPLE	READS1	READS2
+sample_file: classification_input.txt

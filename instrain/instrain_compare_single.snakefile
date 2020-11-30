@@ -136,14 +136,13 @@ rule instrain_compare_filtered:
         filtered_samples_file = join(outdir, "instrain_compare_filtered/filtered_samples.txt"),
     output:
         join(outdir, "instrain_compare_filtered/output/comparisonsTable.tsv")
-    threads: 1
+    threads: 8
     resources:
-        time= 240,
+        time= 48,
         mem=256
     params: 
         outdir = join(outdir, "instrain_compare_filtered"),
-        sed_string = join(outdir, "instrain_profile/"),
-        threads_actual = 8
+        sed_string = join(outdir, "instrain_profile/")
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
@@ -186,6 +185,7 @@ rule instrain_plot_filtered:
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}
+            mv {params.outdir}/figures/instrain_compare_filtered_inStrainCompare_dendrograms.pdf {output}
         else
             # not enough samples to run this pipeline
             echo "NOT ENOUGH FILTERD SAMPLES PRESENT" > {output}
