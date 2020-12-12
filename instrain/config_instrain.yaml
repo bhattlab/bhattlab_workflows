@@ -44,3 +44,9 @@ outdir: instrain
 # which has all the contigs combined together
 drep_folder: drep
 
+# sample groups file
+# if you want a output table annotated with possible transmission events 
+# between different individuals, provide a two column tsv file here
+# with the format
+# SAMPLE_NAME   GROUP
+sample_groups: sample_groups.tsv
