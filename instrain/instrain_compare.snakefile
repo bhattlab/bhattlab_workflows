@@ -53,7 +53,7 @@ drep_folder=config['drep_folder']
 drep_contigs = join(drep_folder, 'all_dereplicated_genomes.fa')
 drep_fasta_dir = join(drep_folder, "dereplicated_genomes")
 # sample groups added later, keep support for old configfiles
-if sample_groups in config.keys():
+if "sample_groups" in config.keys():
     sample_groups = config['sample_groups']
 else:
     sample_groups = None
@@ -95,7 +95,7 @@ rule all:
         expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/{cluster}_filtered_samples.txt"), cluster=cluster_list),
         expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf"), cluster=cluster_list),
         expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
-        expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/output/{cluster}_comparisonsTable.tsv", cluster=cluster_list)),
+        expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/output/{cluster}_comparisonsTable.tsv"), cluster=cluster_list),
         join(outdir, "drep_alignment_comparison/instrain_compare_filtered/instrain_compare_compiled.tsv")
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf"), cluster=cluster_list),
         # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
@@ -268,10 +268,10 @@ rule instrain_heatmaps_filtered:
 # compilation of tables from all clusters
 rule instrain_compile_tables:
     input:
-        expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/output/{cluster}_comparisonsTable.tsv", cluster=cluster_list)
+        expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/output/{cluster}_comparisonsTable.tsv"), cluster=cluster_list)
     output:
         join(outdir, "drep_alignment_comparison/instrain_compare_filtered/instrain_compare_compiled.tsv")
     params:
-        outdir: join(outdir, "drep_alignment_comparison/instrain_compare_filtered/"),
-        sample_groups: sample_groups,
-    scripts: "scripts/compile_compare_tables.R"
+        outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/"),
+        sample_groups = sample_groups,
+    script: "scripts/compile_compare_tables.R"

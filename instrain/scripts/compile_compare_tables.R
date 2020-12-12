@@ -14,8 +14,7 @@ if (F){
 
 # snakemake args
 outdir <- snakemake@params[['outdir']]
-sample.groups.f <- snakemake@params[['outdir']]
-print(sample.groups.f)
+sample.groups.f <- snakemake@params[['sample_groups']]
 # source the instrain tools for parsing
 instrain.tools.f <- file.path(snakemake@scriptdir, 'instrain_tools.R')
 source(instrain.tools.f)
@@ -26,11 +25,12 @@ outf2 <- file.path(outdir, 'instrain_compare_compiled_diffpt.tsv')
 # get a list of clusters from the folders within
 cluster.folders <- list.dirs(outdir, full.names = F,recursive = F)
 # result files within each
-res.files <- sapply(cluster.folders, function(x) file.path(instrain.compare.filtered.f, x, 'output', paste0(x, '_genomeWide_compare.tsv')))
-all(file.exists(res.files))
+res.files <- sapply(cluster.folders, function(x) file.path(outdir, x, 'output', paste0(x, '_genomeWide_compare.tsv')))
+#all(file.exists(res.files))
 
 # load them all
 res.list <- lapply(res.files, function(x) parse_instrain(x, min.frac.compared))
+print('all loaded')
 # add cluster annotation
 for (c in names(res.list)){
     if(nrow(res.list[[c]]) >0){
@@ -56,4 +56,4 @@ res.df.diffpt <- res.df[!res.df$same.pt, ]
 
 # write to the designated output files
 write.table(res.df, outf1, sep='\t', quote=F, row.names = F, col.names = T)
-write.table(res.df.diffpt, outf1, sep='\t', quote=F, row.names = F, col.names = T)
+write.table(res.df.diffpt, outf2, sep='\t', quote=F, row.names = F, col.names = T)
