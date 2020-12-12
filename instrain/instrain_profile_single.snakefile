@@ -59,6 +59,10 @@ limit_clusters = config['limit_clusters']
 outdir = config['outdir']
 barcodes = config['barcodes']
 
+# need to specify cluster file with the single reference here
+if cluster_file is None: 
+    sys.exit('Must specify cluster file with tab delimited indication of reference name and reference genome')
+
 # read filters
 instrain_min_reads = config['instrain_min_reads']
 instrain_max_reads = config['instrain_max_reads']
