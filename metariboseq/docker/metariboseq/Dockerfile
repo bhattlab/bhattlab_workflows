@@ -1,4 +1,4 @@
-FROM cosmosnicolaou/bhattlab-ubuntu-focal-base
+FROM ghcr.io/cosnicolaou/bhattlab-ubuntu-focal-base
 
 # install linux packages
 USER root

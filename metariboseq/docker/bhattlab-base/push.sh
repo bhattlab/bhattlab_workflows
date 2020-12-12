@@ -1,1 +1,1 @@
-docker push --disable-content-trust=false cosmosnicolaou/bhattlab-ubuntu-focal-base:latest
+docker push ghcr.io/bhattlab/bhattlab-ubuntu-focal-base:latest
