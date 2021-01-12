@@ -179,7 +179,7 @@ rule aggregate_idxstats:
         # where contigs of the same genome are indicated with __ designation
         # or a single reference genome, where they will probbaly not have that spec
         if grep "__" {input}; then 
-            cat {input} | grep -v "\*" | sed "s/__/\t/g" | cut -f 1,3,4,5 | \
+            cat {input} | grep -v "\*" | sed "s/.fa__/\t/g" | cut -f 1,3,4,5 | \
                 awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
                 awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
                 awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
