@@ -1,0 +1,5 @@
+speciesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/mdurrant/keep_species.tsv
+referenceDir: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/mdurrant/genomes/
+genotypesInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/mdurrant/all_genotypes.tsv
+clustersInput: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/data/mdurrant/all_summarize_clusters.tsv
+resultsPrefix: /Users/cnicolaou/Dropbox/github.com/bhattlab/bhattlab_workflows/mge-hotspots/results/rare_insertion_analysis

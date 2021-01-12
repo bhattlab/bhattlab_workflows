@@ -1,11 +1,16 @@
 name: mge-hotspots
 channels:
   - bioconda
+  - conda-forge
 dependencies:
-  - python=3.8
+  - python
   - pandas
   - scipy
+  - numba
   - bedtools
   - samtools
   - matplotlib
   - nextflow
+  - prokka=1.14.6-0
+variables:
+  PERL5LIB: $CONDA_PREFIX/lib/perl5/site_perl/5.22.0/

@@ -10,11 +10,11 @@ params="${root}/workflows/params"
 workdir=/labs/asbhatt/cosn/nextflow-workdir
 paramsfile=""
 case "$1" in
-"rare-insertions")
-    paramsfile="${params}/params-rare-insertions.yml"
+"mdurrant")
+    paramsfile="${params}/params-mdurrant.yml"
     ;;
-"rare-insertions-cos-local")
-    paramsfile="${params}/params-rare-insertions-cos-local.yml"
+"mdurrant-cos-local")
+    paramsfile="${params}/params-mdurrant-cos-local.yml"
     workdir=./workdir
     ;;
 "stm20x")
@@ -25,7 +25,7 @@ case "$1" in
     workdir=./workdir
     ;;
 *)
-    echo "unrecognised mode: $1, use one of 'rare-insertions' or 'salmonella'"
+    echo "unrecognised mode: $1, use one of mdurrant, mdurrant-cos-local, stm20x, stm20x-cos-local"
     exit 1
     ;;
 esac
