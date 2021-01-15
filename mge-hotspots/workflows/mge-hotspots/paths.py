@@ -104,7 +104,7 @@ class Outputs:
     def top_windows_summary_bedfile(self):
         return self.__prefix+"/all_top_windows_summarized.bed"
 
-    def top_windows_merged_bedfile(self):
+    def top_windows_summary_merged_bedfile(self):
         return self.__prefix+"/all_top_windows_summarized.merged.bed"
 
     def top_windows_plot(self):
@@ -114,4 +114,4 @@ class Outputs:
         return self.closest_genes_dir+species+".closest_genes.tsv"
 
     def intergenic_hotspots_file(self, species):
-        return self.closest_genes_dir+species+".intergenic_hotspots.tsv"
+        return self.closest_genes_dir+species+".intergenic_insertions.tsv"

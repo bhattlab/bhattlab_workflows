@@ -77,7 +77,7 @@ process summarize_window_coverage {
         path("outputs/window_significance_results/*") from to_summarize
 
     output:
-        path("outputs/all_top_windows_detailed.tsv") into plot_genomewide_hotspots
+        path("outputs/all_top_windows_detailed.tsv") into genomewide_hotspots
         path("outputs/all_top_windows_summarized.bed") into merge_ranges
 
     shell:
@@ -85,6 +85,8 @@ process summarize_window_coverage {
     python "!{summarize_coverage_py}" --species=!{species} --output-prefix=./outputs
     '''
 }
+
+genomewide_hotspots.into{plot_genomewide_hotspots; intersect_genomewide_hotspots}
 
 process merge_ranges {
     input:
@@ -126,6 +128,8 @@ process genomewide_insertion_hotspots {
         path("outputs/genome_lengths/*") from genome_lengths
         path("outputs/prokka_annot/*") from prokka_annotations
         path("outputs/sliding_windows/*") from sliding_windows
+        path("outputs/all_top_windows_detailed.tsv") from intersect_genomewide_hotspots
+        path("outputs/all_prokka_genomes_name_conversion.tsv") from prokka_name_conversions
 
     output:
         path("outputs/closest_genes/*")
@@ -154,7 +158,6 @@ process plot_hotspots {
 }
 
 process plot_genomewide_hotspots {
-    echo true
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:

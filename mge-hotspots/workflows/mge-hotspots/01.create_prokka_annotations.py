@@ -26,7 +26,6 @@ species =  pd.read_csv(args.species[0], delimiter='\t')
 genome_dir = args.genomes[0]
 
 def annotate_species(genome_dir, outdir):
-    print(">>>", outdir)
     result = subprocess.run(
         ["prokka",
             "--kingdom", "Bacteria", 

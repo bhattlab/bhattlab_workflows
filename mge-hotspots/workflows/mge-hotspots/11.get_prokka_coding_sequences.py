@@ -74,14 +74,17 @@ def annotations_for_species(sp, conversions_tsv):
     for l in gf:
         conversions_tsv.writerow([
             l['annotations']['ID'],
+            l['start'],
+            l['end'],
             l['annotations']['gene'],
             l['annotations']['product']])
         bedfile_tsv.writerow([l['contig'], l['start'], l['end'], ".", l['annotations']['ID'], l['strand']])
     bedfile.close()
 
+
 conversions = open(outputs.prokka_name_conversions(), 'w')
 conversions_tsv = csv.writer(conversions, delimiter='\t')
-conversions_tsv.writerow(["id", "gene", "product"])
+conversions_tsv.writerow(['id', 'start', 'end', 'gene', 'product'])
 
 species.apply(lambda row: annotations_for_species(row.species, conversions_tsv), axis='columns')
 
