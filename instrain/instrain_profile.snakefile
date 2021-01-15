@@ -179,7 +179,7 @@ rule aggregate_idxstats:
         # where contigs of the same genome are indicated with __ designation
         # or a single reference genome, where they will probbaly not have that spec
         if grep -q "__" {input}; then 
-            cat {input} | grep -v "\*" | sed "s/.fa__/\t/g" | cut -f 1,3,4,5 | \
+            cat {input} | grep -v "\*" | sed "s/.fa__/.fa\t/g" | sed "s/.fasta__/.fasta\t/g" | cut -f 1,3,4,5 | \
                 awk 'BEGIN {{FS=OFS="\t"}}  {{ b[$1]; for(i=2;i<=NF;i++)a[$1,i]+=$i }} END {{for( i in b) {{printf("%s",i);for(j=2;j<=NF;j++) {{printf("%s%s",OFS,a[i,j])}} print ""}}}}' | \
                 awk -v rl=$rl 'BEGIN {{FS=OFS="\t"}} {{print $1,$2,$3,$4,$3/$2*rl}}' | \
                 awk 'BEGIN {{FS=OFS="\t"}} {{$4=sprintf("%.5f",$4)}}7' >> {output}
@@ -240,12 +240,18 @@ checkpoint decide_clusters:
 
 # snakemake function to get the clusters and re-evaluate the DAG
 def aggregate_clusters(wildcards):
+    if (len(cluster_list)) > 0:
+        print('DEBUG: returning cluster_list directly')
+        # print(cluster_list)
+        return(cluster_list)
+
     checkpoint_output = checkpoints.decide_clusters.get(**wildcards).output[0]
     # print(checkpoint_output)
-    to_return = expand(join(outdir, 'drep_alignment_comparison/cluster_bams/{cluster}'),
-        cluster=glob_wildcards(join(checkpoint_output, "{cluster}.txt")).cluster)
+    # to_return = expand(join(outdir, 'drep_alignment_comparison/cluster_bams/{cluster}'),
+    #    cluster=glob_wildcards(join(checkpoint_output, "{cluster}.txt")).cluster)
     clusters = glob_wildcards(join(checkpoint_output, "{cluster}.txt")).cluster
-    print(clusters)
+    # clusters = clusters[0:25]
+    # print(clusters)
     return clusters
 
 # make a bedfile for each cluster
