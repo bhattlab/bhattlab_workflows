@@ -279,6 +279,8 @@ rule extract_cluster_bam:
     output:
         bam = join(outdir, "drep_alignment_comparison/cluster_bams/{cluster}/{sample}.bam"),
     threads: 1
+    resources: 
+        time = lambda wildcards, attempt: attempt + 6
     params:
         samtools_threads=3,
         min_reads = instrain_min_reads
