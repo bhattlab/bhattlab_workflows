@@ -32,7 +32,6 @@ current_species = 0
 fig, axs = plt.subplots(num_species, 1, constrained_layout=True, figsize=(16,num_species*2))
 plt.xlabel("Genomic Position (bp)")
 
-
 def plot_species(ax, windows, abbrev):
     ax.xaxis.set_minor_locator(ticker.AutoMinorLocator(2))
     ax.yaxis.set_minor_locator(ticker.AutoMinorLocator(2))
@@ -62,14 +61,22 @@ def plot_species(ax, windows, abbrev):
     title.set_yticks([])
     pass
 
-for sp in species.sort_values(['species_abbrev']).itertuples():
+if num_species == 1:
+    sp = species.iloc[0]
     per_species_windows = top_windows.loc[
         (top_windows['species'] == sp.species) &
         (top_windows['genome'] == sp.genome)
     ]
-    ax=axs[current_species]
-    plot_species(ax, per_species_windows, sp.species_abbrev)
-    current_species += 1
+    plot_species(axs, per_species_windows, sp.species_abbrev)
+else:
+    for sp in species.sort_values(['species_abbrev']).itertuples():
+        per_species_windows = top_windows.loc[
+            (top_windows['species'] == sp.species) &
+            (top_windows['genome'] == sp.genome)
+        ]
+        ax=axs[current_species]
+        plot_species(ax, per_species_windows, sp.species_abbrev)
+        current_species += 1
 
 if args.interactive:
         plt.show()

@@ -1,16 +1,13 @@
 #!/usr/bin/python3
 """
-This script finds the closest genes to ...
-"""
+This script finds the closest genes to mobile insertion hotspots. If the
+distance to gene non-zero is non zero then the insertions are intergenic
+and output to a separate file.
 
-"""
-inputs:
-
-all_top_windows_summarized.bed -> all_top_windows_summarized.merged.bed
-insert_beds/$sp_name.insertions.mobile.bed
-genome_lengths/all_genomes.genomeFile.txt
-prokka_annot/$sp_name.coding_seqs.bed
-
+The principal outputs are:
+outputs/closest_genes/<species>.{closest_genes,integenic_insertions}.tsv
+outputs/all_hotspots_with_closest_genes.tsv
+outputs/all_prokka_genomes_name_conversion.tsv
 """
 
 import argparse
@@ -267,12 +264,12 @@ prokka_details.rename(columns={
         'gene': 'closest_gene_name',
         'product': 'closest_gene_desc'
     }, inplace=True)
-
 with_prokka = pd.merge(
     with_species,
     prokka_details[['id', 'closest_gene_start', 'closest_gene_end', 'closest_gene_name', 'closest_gene_desc']],
     on='id')
 
+# calculate and add the unique insertion counts.
 counts = pd.concat(
     species.apply(lambda sp:
         window_counts(outputs, sp.species), axis='columns').values)
@@ -287,6 +284,7 @@ with_counts.drop(columns=['species', 'start', 'end'], inplace=True)
 with_counts.drop_duplicates(inplace=True)
 with_counts.loc[:,'closest_gene_name'] = with_counts.where(pd.notnull(with_counts.closest_gene_name), "hypo")
 
+# prepare and output final tsv's.
 with_counts.rename(columns={
     'id': 'closest_gene',
     'species_abbrev': 'species',
