@@ -229,9 +229,30 @@ def get_closest_genes(outputs, species, genome):
     closest['species'] = species
     return closest
 
+def window_counts(outputs, species):
+    '''
+    window_counts counts the insertions per window.
+    '''
+    mobile_insertions = outputs.insertions_filename(species, 'mobile')
+    merged_hotspots = outputs.top_windows_summary_merged_bedfile()
+    countProc = subprocess.run(
+        ['bedtools', 'coverage', '-counts',
+            '-a', merged_hotspots,
+            '-b', mobile_insertions,
+        ],
+        capture_output=True
+    )
+    countProc.check_returncode()
+    counts = pd.read_csv(io.BytesIO(countProc.stdout), header=None, delimiter='\t')
+    counts.columns = ['contig', 'mobile_start', 'mobile_end', 'pvalue', 'unique_insertion_count']
+    counts.drop(columns='pvalue', inplace=True)
+    counts.drop(counts[counts['unique_insertion_count']==0].index, inplace=True)
+    return counts
+
 # find the closest genes.
-closest = pd.concat(species.apply(lambda sp: 
-    get_closest_genes(outputs, sp.species, sp.genome), axis='columns').values)
+closest = pd.concat(
+    species.apply(lambda sp: 
+        get_closest_genes(outputs, sp.species, sp.genome), axis='columns').values)
 
 # add species_abbrev and genome_name
 with_species = pd.merge(closest,
@@ -240,67 +261,40 @@ with_species = pd.merge(closest,
 
 # add prokka annotation information
 prokka_details = pd.read_csv(outputs.prokka_name_conversions(), delimiter='\t')
-with_prokka = pd.merge(
-    with_species.rename(
-    columns={'id': 'gene'}),
-    prokka_details.rename(columns={
-        'id': 'gene',
+prokka_details.rename(columns={
         'start': 'closest_gene_start',
         'end': 'closest_gene_end',
         'gene': 'closest_gene_name',
         'product': 'closest_gene_desc'
-    })[['gene', 'closest_gene_start', 'closest_gene_end', 'closest_gene_name', 'closest_gene_desc']],
-    on='gene')
+    }, inplace=True)
 
-# merge the insertion count ang significance.
-insertion_details = pd.read_csv(outputs.top_windows_detail(), delimiter='\t')
+with_prokka = pd.merge(
+    with_species,
+    prokka_details[['id', 'closest_gene_start', 'closest_gene_end', 'closest_gene_name', 'closest_gene_desc']],
+    on='id')
+
+counts = pd.concat(
+    species.apply(lambda sp:
+        window_counts(outputs, sp.species), axis='columns').values)
+
 with_counts = pd.merge(
     with_prokka,
-    insertion_details[['contig', 'start', 'end', 'count', 'signif']],
-    on = ['contig', 'start', 'end'],
+    counts,
+    on = ['contig', 'mobile_start', 'mobile_end'],
 )
 
-print(with_counts[(with_counts.contig=='NZ_CP014541.1') & (with_counts.mobile_start==1304500)])
-
-
-with_counts.drop(columns=['species', 'mobile_contig', 'start', 'end'], inplace=True)
+with_counts.drop(columns=['species', 'start', 'end'], inplace=True)
 with_counts.drop_duplicates(inplace=True)
-
-# pick the entry with the highest # of insertions for the same mobile insertion range.
-print("with counts")
-print(with_counts)
-
-
-tmp = with_counts.groupby(by=['contig', 'mobile_start', 'mobile_end'], as_index=False).last()
-print(tmp)
-print(tmp[(tmp.contig=='NZ_CP014541.1') & (tmp.mobile_start==1304500)])
-
-print("max insertions....")
-max_insertions = with_counts.groupby(by=['contig', 'mobile_start', 'mobile_end'], as_index=False)['count'].idxmax()
-
-print(type(max_insertions))
-print(max_insertions)
-print(max_insertions['count'])
-print(np.max(max_insertions['count']))
-print(np.min(max_insertions['count']))
-
-with_counts = with_counts.loc[max_insertions['count']]
-
 with_counts.loc[:,'closest_gene_name'] = with_counts.where(pd.notnull(with_counts.closest_gene_name), "hypo")
 
-print(with_counts[(with_counts.contig=='NZ_CP014541.1') & (with_counts.mobile_start==1001950)])
-
-print(with_counts.iloc[0])
 with_counts.rename(columns={
+    'id': 'closest_gene',
     'species_abbrev': 'species',
     'genome_name': 'genome',
     'mobile_start': 'start',
     'mobile_end': 'end',
     'count': 'unique_insertion_count',
-    'gene': 'closest_gene',
 }, inplace=True)
-
-print(with_counts.iloc[0])
 
 with_counts = with_counts[['species',
     'genome',
@@ -315,13 +309,11 @@ with_counts = with_counts[['species',
     'distance_to_closest_gene',
     'closest_gene_name',
     'closest_gene_desc',
-    'signif',
     ]]
 
+with_counts.sort_values(['species', 'contig', 'start', 'end'], inplace=True)
 with_counts['closest_gene_start'] = with_counts['closest_gene_start'] + 1
-with_counts.to_csv("a.tsv", sep='\t', index=False)
+with_counts.to_csv(outputs.all_hotspots_with_closest_genes(), sep='\t', index=False, float_format='%.2E')
 
-with_counts = with_counts[with_counts.signif & (with_counts.distance_to_closest_gene!=0)]
-with_counts.drop(columns='signif', inplace=True)
-with_counts.to_csv("b.tsv", sep='\t', index=False)
-
+with_counts = with_counts[with_counts.distance_to_closest_gene!=0]
+with_counts.to_csv(outputs.intergenic_hotspots_with_closest_genes(), sep='\t', index=False, float_format='%.2E')

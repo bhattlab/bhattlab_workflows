@@ -115,3 +115,9 @@ class Outputs:
 
     def intergenic_hotspots_file(self, species):
         return self.closest_genes_dir+species+".intergenic_insertions.tsv"
+
+    def all_hotspots_with_closest_genes(self):
+        return self.__prefix+"/all_hotspots_with_closest_genes.tsv"
+
+    def intergenic_hotspots_with_closest_genes(self):
+        return self.__prefix+"/intergenic_hotspots_with_closest_genes.tsv"

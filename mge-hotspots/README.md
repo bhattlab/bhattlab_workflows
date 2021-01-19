@@ -81,13 +81,25 @@ clusters tsv:
 
 # Outputs
 
+The outputs detail the insertion hotspots and their distances from
+known genes. Intergenic hotspots are also detailed separately.
+
 ## Plots
 
-genomewide_insertion_hotspots.pdf
+Plots of insertion hotspots:
 
-window_significance_plots/<species>.<genome>.pdf
+- genomewide_insertion_hotspots.pdf
+- window_significance_plots/<species>.<genome>.pdf
 
 ## Tables
-window_significance_results/<species>window_signif.tsv
 
-closest_genes/<species>{closest_genes,intergenic_insertions}.tsv
+Insertion hotspot table:
+- window_significance_results/<species>window_signif.tsv
+
+Distances to closest genes for all hotspots.
+- closest_genes/<species>.closest_genes.tsv
+
+Details of intergenic hotspots.
+
+- closest_genes/<species>.intergenic_insertions.tsv
+

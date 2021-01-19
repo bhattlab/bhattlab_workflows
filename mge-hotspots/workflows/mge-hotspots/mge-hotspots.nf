@@ -133,6 +133,8 @@ process genomewide_insertion_hotspots {
 
     output:
         path("outputs/closest_genes/*")
+        path("outputs/all_hotspots_with_closest_genes.tsv")
+        path("outputs/intergenic_hotspots_with_closest_genes.tsv")
 
     shell:
     '''
