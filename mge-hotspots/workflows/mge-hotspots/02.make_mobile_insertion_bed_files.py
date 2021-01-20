@@ -21,7 +21,7 @@ parser.add_argument("--species", nargs=1, required=True,
 parser.add_argument("--clusters", nargs=1, required=True,
     help="cluster summaries to be processed, a .tsv file")
 parser.add_argument("--output-prefix", nargs=1, required=True,
-    help="directory for outputs, insertions are written to <output-prefix>/insertions/")
+    help="directory for outputs, insertions and windows are written to <output-prefix>/insert_beds/")
 parser.add_argument("--verbose", action='store_true',
     help="trace/debugging output")
 parser.add_argument("--limit", type=int, nargs=1,

@@ -22,6 +22,9 @@ args = parser.parse_args()
 outputs = paths.Outputs(args.output_prefix[0])
 species =  pd.read_csv(args.species[0], delimiter='\t')
 
+# ignore divide by 0 errors when using log axis below.
+np.seterr(divide = 'ignore') 
+
 def output_plots(outputs, species, genome):
     results = pd.read_csv(outputs.significance_results_filename(species, genome), delimiter='\t')
     hotspots = results.loc[results['signif']]

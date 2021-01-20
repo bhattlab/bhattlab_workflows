@@ -6,10 +6,13 @@ Matthew G. Durrant, Michelle M. Li, Ben Siranosian, Ami S. Bhatt
 bioRxiv 527788; doi: https://doi.org/10.1101/527788
 ```
 
-The pipeline is implemented using `nextdflow`, though its very simple
-and could just as easily be run from a shell script. It takes on the order of two minutes to run. The pipeline can be run using
+In addition it also adds prokka annotations and produces tables of
+the hotspots closest to a gene as well as those that fall within
+a gene.
+
+The pipeline is implemented using `nextflow` and can be run using
 `workflows/mge-hotspots/run-nextflow.sh` which takes a single
-flag identifyin the parametert to use (`workflows/params`). The parameters
+flag identifyin the parameter to use (`workflows/params`). The parameters
 files simple point to the locations of the input files and where
 the results should be placed. The inputs are as follows:
 
@@ -20,7 +23,9 @@ the results should be placed. The inputs are as follows:
 The `conda-environment.yml` file lists the packages required to create
 a `minconda` environment suitable for running the analysis.
 
-These are all tsv's, and the columns are as follows. Note only
+# Inputs
+
+The inputs are all tsv's, and the columns are as follows. Note that only
 those marked with a * are used directly by the python scripts.
 
 ```
@@ -73,3 +78,28 @@ clusters tsv:
     repr_seq_length
     repr_seq
 ```
+
+# Outputs
+
+The outputs detail the insertion hotspots and their distances from
+known genes. Intergenic hotspots are also detailed separately.
+
+## Plots
+
+Plots of insertion hotspots:
+
+- genomewide_insertion_hotspots.pdf
+- window_significance_plots/<species>.<genome>.pdf
+
+## Tables
+
+Insertion hotspot table:
+- window_significance_results/<species>window_signif.tsv
+
+Distances to closest genes for all hotspots.
+- closest_genes/<species>.closest_genes.tsv
+
+Details of intergenic hotspots.
+
+- closest_genes/<species>.intergenic_insertions.tsv
+
