@@ -80,6 +80,6 @@ rule merge_tables:
 
     shell: """
         merge_metaphlan_tables.py  {params.results_dir}/*.txt > {output.t1}
-        grep -E "s__|clade" merged_abundance_table.txt | sed 's/^.*s__//g' | cut -f2 --complement | sed -e 's/clade_name/species/g' > {output.t1}
+        grep -E "s__|clade" {output.t1} | sed 's/^.*s__//g' | cut -f2 --complement | sed -e 's/clade_name/species/g' > {output.t1}
     """
 
