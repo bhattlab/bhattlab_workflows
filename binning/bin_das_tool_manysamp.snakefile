@@ -563,7 +563,7 @@ rule aragorn:
     log:
         join(outdir, "{sample}/logs/aragorn_{bin}.log")
     singularity:
-        "docker pull quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
     resources:
         mem = 8,
         time = 1
@@ -580,7 +580,7 @@ rule barrnap:
     log:
         join(outdir, "{sample}/logs/barrnap_{bin}.log")
     singularity:
-        "docker pull quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
     resources:
         mem = 8,
         time = 1
@@ -612,7 +612,7 @@ rule pull_prokka:
     input: join(outdir, "{sample}/idx/{sample}.fa"),
     output: join(outdir, "{sample}/prokka/pulled.txt") 
     singularity:
-        "docker pull quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
     shell: """
         touch {output}
     """
@@ -627,7 +627,7 @@ rule prokka:
     log:
         join(outdir, "{sample}/logs/prokka_{bin}.log")
     singularity:
-        "docker pull quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
     resources:
         mem = 48,
         time = lambda wildcards, attempt: 4 * attempt,
