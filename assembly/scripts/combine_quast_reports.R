@@ -8,7 +8,9 @@ read_quast_report <- function(f, name, keep.columns=c('Assembly', 'contigs')){
     return(data.frame(matrix(nrow=1, ncol=length(keep.columns),dimnames = list('', keep.columns))))
   })
   # print(head(df))
-  df <- df[, keep.columns]
+  keep.columns.mod <- keep.columns[keep.columns %in% colnames(df)]  
+  keep.columns.mod <- keep.columns.mod[1:2]
+  df <- df[, keep.columns.mod]
   colnames(df)[2] <- name
   return(df)
 }
@@ -20,7 +22,7 @@ result.files <- sapply(sample.names, function(x) file.path(assembly.dir, x, 'qua
 
 if(!all(file.exists(result.files))) {exit('Cant find all result files!')}
 
-df.list <- lapply(sample.names, function(x) read_quast_report(result.files[x], x))
+df.list <- lapply(sample.names, function(x) read_quast_report(result.files[x], x, keep.columns=c("Assembly", "contigs", paste0(x, ".contigs"), gsub('-', '_', paste0(x, ".contigs")))))
 
 merge.colname <- 'Assembly'
 merge.temp <- suppressWarnings(Reduce(function(x,y) merge(x, y, all=TRUE, by=merge.colname, sort=F), df.list))
