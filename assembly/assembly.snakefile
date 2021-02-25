@@ -154,3 +154,21 @@ rule combine_spades_quast_reports_R:
         assembly_dir = join(PROJECT_DIR, "02_assembly/02_metaspades/")
     script: "scripts/combine_quast_reports.R"
 
+################################################################################
+# cleanup to be run after everything else is finished
+rule cleanup:
+    input: outfiles_all
+    output: join(PROJECT_DIR, "cleaned")
+    params:
+        rmdir_1 = join(PROJECT_DIR, '01_megahit'),
+        rmdir_2 = join(PROJECT_DIR, '02_metaspades'),
+    shell: """
+        # remove megahit files
+        rm -f {params.rmdir_1}/*/*intermediate_contigs*
+        # remove spades files
+        rm -fr {params.rmdir_2}/*/*K[0-9][0-9]
+        rm -fr {params.rmdir_2}/*/*misc
+        rm -fr {params.rmdir_2}/*/*corrected
+        rm -fr {params.rmdir_2}/*/*tmp
+        touch {output}
+    """

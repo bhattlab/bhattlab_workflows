@@ -26,3 +26,14 @@ snakemake --configfile config_preprocessing.yaml \
 --profile scg --jobs 100 --use-singularity \
 --singularity-args '--bind /labs/,/oak/,/home/'
 ```
+
+**Important** after running the preprocessing or assembly pipelines, run the cleanup rule in the snakefile. This will delete all the unnecessary files and save us space on SCG! 
+```
+snakemake cleanup -s PATH/TO/SNAKEFILE --configfile YOUR_CONFIGFILE.yaml
+
+```
+
+You can also remove the `.snakemake` folder, which only contains metadata and cache from the run. 
+```
+rm -rf .snakemake 
+```
