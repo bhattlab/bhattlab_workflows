@@ -24,6 +24,7 @@ case "$1" in
     ;;
 *)
     echo "unrecognised mode: $1"
+    echo "supported modes are: test, scg-sampleA, sgc-all"
     exit 1
     ;;
 esac
