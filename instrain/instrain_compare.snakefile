@@ -97,48 +97,6 @@ rule all:
         expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
         expand(join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/output/{cluster}_comparisonsTable.tsv"), cluster=cluster_list),
         join(outdir, "drep_alignment_comparison/instrain_compare_filtered/instrain_compare_compiled.tsv")
-        # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf"), cluster=cluster_list),
-        # expand(join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf"), cluster=cluster_list),
-
-rule instrain_compare_all:
-    input:
-        lambda wildcards: expand(join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/output/{sample}_scaffold_info.tsv"),
-            sample=sample_list, cluster=wildcards.cluster)
-    output:
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/output/{cluster}_comparisonsTable.tsv")
-    threads: 16
-    params: 
-        files = lambda wildcards: expand(join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}"),
-            sample=sample_list, cluster=wildcards.cluster),
-        outdir = join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}"),
-        threads_actual = 16 
-    shell: """
-        inStrain compare -i {params.files} -o {params.outdir} -p {params.threads_actual}
-    """
-
-rule instrain_genome_wide_all:
-    input:
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/output/{cluster}_comparisonsTable.tsv")
-    output:
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/output/{cluster}_genomeWide_compare.tsv")
-    params: 
-        fasta_name = lambda wildcards: cluster_to_fasta[wildcards.cluster],
-        fasta_dir = drep_fasta_dir,
-        outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}")
-    shell: """
-        inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
-    """
-
-rule instrain_plot_all:
-    input:
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/output/{cluster}_genomeWide_compare.tsv")
-    output:
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf")
-    params: 
-        outdir = join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}")
-    shell: """
-        inStrain plot -i {params.outdir}
-    """
 
 rule instrain_filter_reads:
     input:
@@ -194,6 +152,7 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}"),
         sed_string = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/"),
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
@@ -214,6 +173,7 @@ rule instrain_genome_wide_filtered:
         fasta_name = lambda wildcards: cluster_to_fasta[wildcards.cluster],
         fasta_dir = drep_fasta_dir,
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}")
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
@@ -231,6 +191,7 @@ rule instrain_plot_filtered:
         join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf")
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}")
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}
@@ -251,6 +212,7 @@ rule instrain_heatmaps_all:
         min_frac_compared = 0.2, 
         min_identity_plot = 0,
         cluster_name = lambda wildcards: wildcards.cluster
+    conda: "envs/r_processing.yaml"
     script: "scripts/heatmaps_instrain.R"
 
 rule instrain_heatmaps_filtered:
@@ -263,6 +225,7 @@ rule instrain_heatmaps_filtered:
         min_frac_compared = 0.2, 
         min_identity_plot = 0,
         cluster_name = lambda wildcards: wildcards.cluster
+    conda: "envs/r_processing.yaml"
     script: "scripts/heatmaps_instrain.R"
 
 # compilation of tables from all clusters
@@ -274,4 +237,5 @@ rule instrain_compile_tables:
     params:
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/"),
         sample_groups = sample_groups,
+    conda: "envs/r_processing.yaml"
     script: "scripts/compile_compare_tables.R"

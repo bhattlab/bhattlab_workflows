@@ -117,6 +117,7 @@ rule drep_fai:
         drep_contigs=drep_contigs
     output:
         fai=drep_contigs + '.fai'
+    conda: "envs/align.yaml"
     shell: """
         samtools faidx {input}
     """
@@ -149,6 +150,7 @@ rule map_reads_contigs:
     params: 
         samtools_threads=7,
         barcode_map= '-C' if barcodes else ''
+    conda: "envs/align.yaml"
     shell: """
         bwa mem {params.barcode_map} -t {threads} {input.drep_contigs} {input.reads} | \
         samtools view -@ {params.samtools_threads} -b -F 4 | \
@@ -161,6 +163,7 @@ rule idxstats:
         bam=join(outdir, "map_reads_drep_sorted/{sample}.bam"),
     output:
         idxstats=join(outdir, "map_reads_drep_sorted/{sample}.idxstats")
+    conda: "envs/align.yaml"
     shell: """
         samtools idxstats {input} > {output}
     """
@@ -284,6 +287,7 @@ rule extract_cluster_bam:
     params:
         samtools_threads=3,
         min_reads = instrain_min_reads
+    conda: "envs/align.yaml"
     shell: """
         f1=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
         f=$(basename $f1 | sed 's/.fasta//g' | sed 's/.fna//g'| sed 's/.fa//g')
@@ -311,6 +315,7 @@ rule subsample_bam:
     params:
         max_reads=instrain_max_reads,
     threads: 4
+    conda: "envs/align.yaml"
     shell: """
         if [ -s {input} ]; then
             samtools flagstat {input} | grep "read1" | cut -f 1 -d " " > {output.readcounts}
@@ -339,6 +344,7 @@ rule index_cluster_bam:
     threads: 1
     params:
         samtools_threads=3
+    conda: "envs/align.yaml"
     shell: """
         # skip if readcounts are zero
         rc="$(cat {input.readcounts})"
@@ -370,6 +376,7 @@ rule instrain_profile:
         logfile = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/log/log.log"),
         drep_fasta_folder = join(drep_folder, "dereplicated_genomes"),
         min_reads = instrain_min_reads
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         f=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
         # skip if readcounts are less than the min reads

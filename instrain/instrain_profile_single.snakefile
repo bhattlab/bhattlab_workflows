@@ -115,6 +115,7 @@ rule faidx:
       rules.copy_reference.output
     output:
         join(outdir, 'ref.fa.fai')
+    conda: "envs/align.yaml"
     shell: """
         samtools faidx {input}
     """
@@ -128,6 +129,7 @@ rule bwa_index_contigs:
     resources:
         mem=32,
         time=48
+    conda: "envs/align.yaml"
     shell: """
         bwa index {input}
     """
@@ -147,6 +149,7 @@ rule map_reads_contigs:
     params: 
         samtools_threads=7,
         barcode_map= '-C' if barcodes else ''
+    conda: "envs/align.yaml"
     shell: """
         bwa mem {params.barcode_map} -t {threads} {input.contigs} {input.reads} | \
         samtools view -@ {params.samtools_threads} -b -F 4 | \
@@ -195,6 +198,7 @@ rule subsample_bam:
     params:
         max_reads=instrain_max_reads,
     threads: 4
+    conda: "envs/align.yaml"
     shell: """
         if [ -s {input} ]; then
             samtools flagstat {input} | grep "read1" | cut -f 1 -d " " > {output.readcounts}
@@ -235,6 +239,7 @@ rule instrain_profile:
         logfile = join(outdir, "instrain_profile/{sample}/log/log.log"),
         drep_fasta_folder = join(outdir, "dereplicated_genomes"),
         min_reads = instrain_min_reads
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         # skip if readcounts are less than the min reads
         rc="$(cat {input.readcounts})"

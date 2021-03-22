@@ -143,6 +143,7 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "instrain_compare_filtered"),
         sed_string = join(outdir, "instrain_profile/")
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
@@ -164,6 +165,7 @@ rule instrain_genome_wide_filtered:
     params: 
         fasta_name = join(outdir, "ref.fa"),
         outdir = join(outdir, "instrain_compare_filtered")
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
@@ -182,6 +184,7 @@ rule instrain_plot_filtered:
         join(outdir, "instrain_compare_filtered/figures/inStrainCompare_dendrograms.pdf")
     params: 
         outdir = join(outdir, "instrain_compare_filtered")
+    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}
@@ -203,5 +206,6 @@ rule instrain_heatmaps_filtered:
         min_frac_compared = 0.2, 
         min_identity_plot = 0,
         cluster_name = ref_cluster
+    conda: "envs/r_processing.yaml"
     script: "scripts/heatmaps_instrain.R"
 

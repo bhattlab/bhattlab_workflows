@@ -1,0 +1,6 @@
+name: r-processing
+channels:
+  - r
+dependencies:
+  - r-gplots
+  - r-viridis

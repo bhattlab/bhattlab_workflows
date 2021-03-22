@@ -100,6 +100,7 @@ rule drep:
         symlink_dir_filtered = join(outdir, "bins_das_tool_symlinks_filtered"),
         min_completeness=min_completeness, 
         max_contamination=max_contamination, 
+        secondary_clustering_algorithm = config['secondary_clustering_algorithm']
     threads: 16
     resources: 
         mem=128, 
@@ -114,11 +115,13 @@ rule drep:
             rm -rf {params.drep_outdir}/figures
         fi
 
-        dRep dereplicate {params.drep_outdir} --ignoreGenomeQuality \
+        dRep dereplicate {params.drep_outdir} \
+            --ignoreGenomeQuality \
             -comp {params.min_completeness} \
             -con {params.max_contamination} \
             --genomeInfo {input.quality} \
             -g {params.symlink_dir_filtered}/*.fa \
+            --S_algorithm {params.secondary_clustering_algorithm} \
             -p {threads}
 
         # add fasta headers to each from the genome

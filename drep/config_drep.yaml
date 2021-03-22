@@ -11,3 +11,8 @@ das_tool_folder: binning_das_tool
 # recommended values are 50 and 15
 min_completeness: 50
 max_contamination: 15
+
+# secondary clustering algorithm for dRep 
+# changed from the default of ANImf because of the huge number of files this creates
+# see https://drep.readthedocs.io/en/latest/module_descriptions.html#compare
+secondary_clustering_algorithm: fastANI
