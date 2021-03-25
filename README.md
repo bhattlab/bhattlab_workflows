@@ -17,6 +17,7 @@ Computational workflows for metagenomics tasks, packaged with Snakemake, Singula
 	- [**ARG detection** with RGI](manual/arg.md) 
     - [**Viral** contig prediction](manual/viral.md) 
     - [Comparative microbial genomics pipelines](manual/comparative_genomics.md)
+    - [MetaRibo-Seq](metariboseq/README.md)
 
 ### Quickstart
 If you're in the Bhatt lab and working on SCG, this command is an example of how to run the workflows. Other users will need to change these options (see [Running a workflow](manual/running.md))
