@@ -11,21 +11,21 @@ and `singularity`. Docker is used since it is much more performant and
 flexible than `singularity` especially when used with buildkit. Two
 docker images are used, one that is a base image intend for broad
 use and a second that is specific to metariboseq. The `singularity` image
-packages the metariboseq docker image for use on SCG.
+packages the metariboseq docker image for use on a local cluster, such
+as Stanford's SCG, however, there is nothing specific to SCG in this
+workflow and it can run on a single node or even a laptop, albeit slowly.
 
 See the `./docker` and `./singularity` directories for build scripts etc.
 
 # Nextflow Workflows
 
-`Nextflow` is used to implement the actual workflow; the resulting scripts
-can be compared to those developed by `snakemake` to see which is best suited
-to our needs going forward. Note that a current version of `nextflow` is used
-and that can be found in `/labs/asbhatt/tools/swtools/bin`.
+`Nextflow` version `20.07.1.5412` is used to implement the actual workflow.
+Note that this is installed in `/labs/asbhatt/tools/swtools/bin`.
 
 Some common conventions:
 
 1. All nextflow scripts have the suffix `.nf`
-2. A shell script, typically `run-nextflow.sh` is used to run `nextflow` with
+2. A shell script, `run-nextflow.sh` is used to run `nextflow` with
 appropriate parameters. The samples are specified via a parameter file,
 as are common workflow options.
 3. Nextflow configuration files are specified by these scripts as appropriate
@@ -65,7 +65,7 @@ sampleSpecs:
 
 All workflows are in the `workflows` directory:
 
-1. `subsample`: generates subsampled input data for testing/development.
+1. `subsample`: generates sub-sampled input data for testing/development.
 2. `metariboseq`: the actual metariboseq workflow.
 
 ## Testing and Development
@@ -74,7 +74,7 @@ A nextflow script is provided for subsampling a given set of samples to
 create a small 'test' sample for development purposes. The full samples
 take on the order of 24-48 hours to assemble and hence are cumbersome
 to work with. See the `subsample` directory for details. The `run-nextflow.sh`
-script runs nextflow with appropriate parameter files and configuration
+script runs `nextflow` with appropriate parameter files and configuration
 to generate the subsampled data.
 
 ## Metariboseq and Analysis Workflows
@@ -92,6 +92,4 @@ Making changes to the parameter files should be fairly self-evident.
 The `nextflow` execution graph is complicated by the need to create
 assemblies for the `metagenomic` files, but not for the `metariboseq`
 files and to then build indices and aligments using the `metagenomic`
-assembly. The actual `.nf` file is commented, but this is really the
-only complication. In terms of understanding the nextflow itself
-the documentation and tutorials are (nextflow.io) are reasonably clear.
+assembly.
