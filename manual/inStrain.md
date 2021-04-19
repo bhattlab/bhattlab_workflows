@@ -46,3 +46,5 @@ snakemake -s ~/projects/bhattlab_workflows/instrain/instrain_profile_single.snak
 # wait a long time for profile to complete
 snakemake -s ~/projects/bhattlab_workflows/instrain/instrain_compare_single.snakefile --configfile config_instrain.yaml --use-singularity --use-conda 
 ```
+
+For example, If you generate an assembly of a bloodstream isolate from sequencing reads, and you want to compare reads from many stool/metagenomic samples to the isolate, you should ALSO include the isolate sequencing reads in your comparison. This will allow you to get metrics on strain diversity in the isolate, as well as make the pairwise comparisons between the isolate and the stool sample very easy. 
