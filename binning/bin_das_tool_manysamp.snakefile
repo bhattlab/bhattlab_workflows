@@ -388,6 +388,7 @@ checkpoint concoct_extract_bins:
     singularity:
         'docker://quay.io/biocontainers/concoct:1.1.0--py27h88e4a8a_0'
     shell: """
+    mkdir -p {params.outdir}
     extract_fasta_bins.py {input.original_contigs} {input.clustering_merged} \
     --output_path {params.outdir}
     """
