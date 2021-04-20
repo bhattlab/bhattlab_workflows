@@ -419,7 +419,7 @@ rule DAStool:
         logfile = join(outdir, "{sample}/DAS_tool/_DASTool.log"),
     threads: 8
     resources:
-        time=lambda wildcards, attempt: attempt * 6
+        time=lambda wildcards, attempt: attempt * 24
     shell: """
         # Prepare scaffold2bin file for each set of bins
         Fasta_to_Scaffolds2Bin.sh -e fa -i {params.metabat_dir} > {params.metabat_tsv}
@@ -564,7 +564,7 @@ rule aragorn:
     log:
         join(outdir, "{sample}/logs/aragorn_{bin}.log")
     singularity:
-        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl5262hdfd78af_1"
     resources:
         mem = 8,
         time = 1
@@ -581,7 +581,7 @@ rule barrnap:
     log:
         join(outdir, "{sample}/logs/barrnap_{bin}.log")
     singularity:
-        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl5262hdfd78af_1"
     resources:
         mem = 8,
         time = 1
@@ -613,7 +613,7 @@ rule pull_prokka:
     input: join(outdir, "{sample}/idx/{sample}.fa"),
     output: join(outdir, "{sample}/prokka/pulled.txt") 
     singularity:
-        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl5262hdfd78af_1"
     shell: """
         touch {output}
     """
@@ -628,7 +628,7 @@ rule prokka:
     log:
         join(outdir, "{sample}/logs/prokka_{bin}.log")
     singularity:
-        "docker://quay.io/biocontainers/prokka:1.14.6--pl526_0"
+        "docker://quay.io/biocontainers/prokka:1.14.6--pl5262hdfd78af_1"
     resources:
         mem = 48,
         time = lambda wildcards, attempt: 4 * attempt,
@@ -676,7 +676,14 @@ rule bin_idxstats:
         mem = 2,
         time = 6
     shell: """
-        grep '>' {input[0]} | tr -d '>' | cut -f 1 -d " " | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}
+        # cut runtime on unbinned contigs, takes forever
+        if [[ {wildcards.bin} =~ "unbinned" ]]; then
+            head -n 10 {input[0]} | grep '>' | tr -d '>' | cut -f 1 -d " " | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}
+        else
+            grep '>' {input[0]} | tr -d '>' | cut -f 1 -d " " | xargs -I foo -n 1 grep -P 'foo\t' {input[1]} > {output}
+        fi
+
+
     """
 
 # Determine coverage for each bin
