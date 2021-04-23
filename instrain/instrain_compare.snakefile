@@ -1,7 +1,7 @@
 from os.path import join, abspath, expanduser, exists, basename
 # running the instrain compare part of the pipeline, separate from the 
 # profile part to speed things up
-localrules: instrain_heatmaps_filtered, instrain_heatmaps_all, instrain_filter_reads, instrain_plot_filtered, instrain_genome_wide_filtered
+localrules: instrain_heatmaps_filtered, instrain_filter_reads, instrain_plot_filtered, instrain_genome_wide_filtered
 
 def get_cluster_fasta(cluster_file):
     cluster_dict = {}
@@ -202,19 +202,6 @@ rule instrain_plot_filtered:
     """
 
 # custom heatmaps
-rule instrain_heatmaps_all:
-    input:
-        rules.instrain_genome_wide_all.output
-    output: 
-        join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/heatmaps/popANI/popANI_heatmap_unfiltered_complete.pdf")
-    params: 
-        outdir = join(outdir, "drep_alignment_comparison/instrain_compare_all/{cluster}/heatmaps/"),
-        min_frac_compared = 0.2, 
-        min_identity_plot = 0,
-        cluster_name = lambda wildcards: wildcards.cluster
-    conda: "envs/r_processing.yaml"
-    script: "scripts/heatmaps_instrain.R"
-
 rule instrain_heatmaps_filtered:
     input:
         rules.instrain_genome_wide_filtered.output
