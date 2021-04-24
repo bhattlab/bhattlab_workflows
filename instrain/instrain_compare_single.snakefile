@@ -1,7 +1,7 @@
 from os.path import join, abspath, expanduser, exists, basename
 # isntrain compare for the version of the pipeline that uses 
 # a single refrence genome
-localrules: instrain_heatmaps_filtered, instrain_heatmaps_all, instrain_filter_reads, instrain_plot_filtered, instrain_genome_wide_filtered
+localrules: instrain_heatmaps_filtered, instrain_filter_reads, instrain_plot_filtered, instrain_genome_wide_filtered
 
 def get_cluster_fasta(cluster_file):
     cluster_dict = {}
@@ -143,14 +143,17 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "instrain_compare_filtered"),
         sed_string = join(outdir, "instrain_profile/")
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
             # echo $files
             inStrain compare -i $files -o {params.outdir} -p {threads} --store_mismatch_locations
-            mv {params.outdir}/output/instrain_compare_filtered_comparisonsTable.tsv {params.outdir}/output/comparisonsTable.tsv
-            mv {params.outdir}/output/instrain_compare_filtered_pairwise_SNP_locations.tsv {params.outdir}/output/pairwise_SNP_locations.tsv
+            if [ -f {params.outdir}/output/instrain_compare_filtered_comparisonsTable.tsv ]; then
+                mv {params.outdir}/output/instrain_compare_filtered_comparisonsTable.tsv {params.outdir}/output/comparisonsTable.tsv
+            else
+                echo "Desired ouput file seems to be missing" > {output}
+            fi
         else
             # not enough samples to run this pipeline
             echo "NOT ENOUGH FILTERD SAMPLES PRESENT" > {output}
@@ -165,7 +168,7 @@ rule instrain_genome_wide_filtered:
     params: 
         fasta_name = join(outdir, "ref.fa"),
         outdir = join(outdir, "instrain_compare_filtered")
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
@@ -184,7 +187,7 @@ rule instrain_plot_filtered:
         join(outdir, "instrain_compare_filtered/figures/inStrainCompare_dendrograms.pdf")
     params: 
         outdir = join(outdir, "instrain_compare_filtered")
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}

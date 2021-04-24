@@ -152,7 +152,7 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}"),
         sed_string = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/"),
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
@@ -173,7 +173,7 @@ rule instrain_genome_wide_filtered:
         fasta_name = lambda wildcards: cluster_to_fasta[wildcards.cluster],
         fasta_dir = drep_fasta_dir,
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}")
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
@@ -191,7 +191,7 @@ rule instrain_plot_filtered:
         join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}/figures/{cluster}_inStrainCompare_dendrograms.pdf")
     params: 
         outdir = join(outdir, "drep_alignment_comparison/instrain_compare_filtered/{cluster}")
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}

@@ -376,7 +376,7 @@ rule instrain_profile:
         logfile = join(outdir, "drep_alignment_comparison/cluster_instrain/{cluster}/{sample}/log/log.log"),
         drep_fasta_folder = join(drep_folder, "dereplicated_genomes"),
         min_reads = instrain_min_reads
-    singularity: "quay.io/biocontainers/instrain:1.5.2--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
     shell: """
         f=$(grep -P "^{wildcards.cluster}\t" {input.cluster_file} | cut -f2)
         # skip if readcounts are less than the min reads
