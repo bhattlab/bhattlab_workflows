@@ -37,3 +37,31 @@ To compare your freshly minted bins against reference genomes from Genbank and M
 Change the `long_read` specification in the configfile and put your nanopore reads in the third column (just once). If you also have high-quality short read data, you could run this pipeline in the standard mode by providing your nanopore assembly and the short read pairs. This might be more accurate for depth/coverage calculations, but I'm not sure. 
 
 *Still in development, please file issues on GitHub if you encounter any.*
+
+### Result metadata
+The best description of what each bin will be in the `binning_table_all_simple.tsv` file. A description of the meanings of each column is below. 
+```
+Sample                 sample name
+Bin                    bin name, corresponds to fasta file
+bin.quality.numeric    Completeness – (5*contamination)
+bin.quality.call       0-4 quality call, based on Nayfach and Bowers standards
+Completeness           completeness from checkM
+Contamination          contamination from checkM
+Strain.heterogeneity   Strain heterogeneity from checkM
+lca_species            kraken2-based bin classifiction. At least 2/3 total bin length was classified to this taxa
+lca_level              taxonomic level of the above taxa
+lca_fraction           what fraction of total length was classified as the above taxa
+best_species           kraken2-based bin classifiction. Single species with the highest abundance
+best_level             taxonomic level of the above taxa
+best_fraction          what fraction of total length was classified as the above taxa
+N50                    Bin N50 (contiguity)
+Size.Mb                size of bin in Mb
+Coverage               Coverage of reads mapped back to bin
+# contigs (>= 0 bp)    Total number of contigs in bin
+Largest contig         largest contig in bin
+Genes                  number of genes predicted by prodigal
+tRNA                   number of tRNA genes predicted by prokka
+rna.16S                number of 16S genes predicted by prokka
+rna.23S                number of 23S genes predicted by prokka
+rna.5S                 number of 5S genes predicted by prokka
+```
