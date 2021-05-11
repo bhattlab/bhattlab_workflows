@@ -162,6 +162,7 @@ rule idxstats:
         bam=join(outdir, "map_reads_ref_sorted/{sample}.bam"),
     output:
         idxstats=join(outdir, "map_reads_ref_sorted/{sample}.idxstats")
+    conda: "envs/align.yaml"
     shell: """
         samtools idxstats {input} > {output}
     """
