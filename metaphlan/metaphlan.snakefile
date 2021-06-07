@@ -56,6 +56,7 @@ rule metaphlan3:
         join(outdir, "results", "{samp}.txt")
     params:
         bowtie2out = join(outdir, "bowtie2files", "{samp}.out"),
+	bowtie2out_folder = join(outdir, 'bowtie2files'),
         db = db
     threads: 8
     resources: 
@@ -64,6 +65,8 @@ rule metaphlan3:
     shell: """
         # need to remove bowtie2 outfile if it exists already
         rm -f {params.bowtie2out}
+	# create directory if it doesnt exist
+	mkdir -p {params.bowtie2out_folder}
 
         metaphlan {input.r1},{input.r2} --nproc {threads} --input_type fastq \
             --bowtie2db {params.db} --bowtie2out {params.bowtie2out} -o {output}
