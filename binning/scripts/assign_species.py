@@ -19,7 +19,12 @@ def get_taxonomy_json(taxids):
     url_base = 'http://taxonomy.jgi-psf.org/tax/id/ancestor/'
     url = url_base + ','.join(taxids)
     r = requests.get(url)
-    return r.json()
+    try: 
+        json=r.json()
+    except:
+        print("Failing taxonomy lookup on taxid:" + str(taxids))
+        json=''
+    return json
 
 
 binfaifs = [os.path.join(binfolder, f) for f in os.listdir(binfolder) if os.path.splitext(f)[-1] == '.fai']
@@ -44,11 +49,16 @@ for binfaif in binfaifs:
         contig = row[0]
         # number of votes = contig length
         votes = int(row[1])
-        taxid = krak.loc[contig, 'taxid']
+        try:
+            taxid = krak.loc[contig, 'taxid']
+        except:
+            taxid=0
         species_votes.setdefault(taxid, 0)
         species_votes[taxid] = species_votes[taxid] + votes
-        bin_size += krak.loc[contig,'size']
-
+        try:
+            bin_size += krak.loc[contig,'size']
+        except:
+            bin_size +=0
     species_votes_sorted = sorted(species_votes.items(), key=operator.itemgetter(1))
     total_votes = sum(species_votes.values())
     vote_thresh = total_votes * winning_margin / 100
