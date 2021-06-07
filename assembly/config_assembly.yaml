@@ -1,3 +1,16 @@
-assemblers: ["spades"] #can also run megahit if you specify it in this list
+# Configuration for the Bhattlab assembly pipeline.
+
+# pick an assembler - choices are "megahit" and "spades"
+# both can be run if you add to the list.
+assemblers: ["spades"]
+# output directory - where all the results will live. Relative to the 
+# working directory where you start snakemake
 output_directory: assembly
+# sample_table: two-column tsv defining mapping from 
+# sample names to sequence read files. If you ran the preprocessing
+# pipeline, this will be an automatic output.
+# the file should look like: 
+# Sample     Reads1.fq[.gz][,Reads2.fq[.gz][,orphans.fq[.gz]]]
+# sample_a    a_1.fq,a_2.fq,a_orphans.fq
+# sample_b    b_1.fq,b_2.fq,b_orphans.fq
 sample_table: preprocessing/01_processing/assembly_input.txt
