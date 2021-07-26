@@ -105,7 +105,7 @@ rule drep:
     resources: 
         mem=128, 
         time=24
-    singularity: "docker://quay.io/biocontainers/drep:2.6.2--py_0"
+    singularity: "docker://quay.io/biocontainers/drep:3.2.2--pyhdfd78af_0"
     shell: """
         if [ -d {params.drep_outdir}/data ]; then
             rm -rf {params.drep_outdir}/data
@@ -138,11 +138,11 @@ rule make_top_clusters:
     output:
         join(outdir, 'top_clusters.txt')
     params:
-        outdir = outdir,
+        outdir = join(outdir, "drep_actual"),
         keep_clusters = 20
     shell: """
         set +o pipefail
-        cat {params.outdir}/drep_actual/data_tables/Cdb.csv | cut -f 2 -d "," | sort | uniq -c | sort -nr | head -n {params.keep_clusters} | tr -s " " | cut -f 3  -d " " > top_cluster_names.txt
+        tail -n +2 {params.outdir}/data_tables/Cdb.csv | cut -f 2 -d "," | sort | uniq -c | sort -nr | head -n {params.keep_clusters} | tr -s " " | cut -f 3  -d " " > top_cluster_names.txt
         awk '{{ print ","$1"," }}' top_cluster_names.txt | grep {params.outdir}/data_tables/Wdb.csv -f - | cut -f 1 -d "," > top_fasta.txt
         paste top_cluster_names.txt  top_fasta.txt > {output}
     """
