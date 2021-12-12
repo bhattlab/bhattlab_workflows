@@ -115,18 +115,16 @@ rule trim_galore:
         fwd = rules.deduplicate.output.fwd,
         rev = rules.deduplicate.output.rev,
     output:
-        fwd = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_val_1.fq" + gz_ext),
-        rev = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_2_val_2.fq" + gz_ext),
-        orp = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_unpaired.fq" + gz_ext)
+        fwd = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_val_1.fq.gz"),
+        rev = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_2_val_2.fq.gz"),
+        orp = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_unpaired.fq.gz")
     threads: 2
     resources:
         mem=32,
         time=lambda wildcards, attempt: attempt * 24
     params:
-        orp_fwd = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_unpaired_1.fq" + gz_ext),
-        orp_rev = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_2_unpaired_2.fq" + gz_ext),
-        # output_fwd_pre_gz = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_") + READ_SUFFIX[0] + "_val_1.fq",
-        # output_rev_pre_gz = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_") + READ_SUFFIX[1] + "_val_2.fq",
+        orp_fwd = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_unpaired_1.fq.gz"),
+        orp_rev = join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_2_unpaired_2.fq.gz"),
         q_min   = config['trim_galore']['quality'],
         left    = config['trim_galore']['start_trim'],
         min_len = config['trim_galore']['min_read_length'],
@@ -145,12 +143,8 @@ rule trim_galore:
             {start_trim_string} \
             {end_trim_string}
 
-        # if output is gz, merge unpaired and gzip
-        if {params.gz_output}; then
-            zcat -f {params.orp_fwd} {params.orp_rev} | pigz -b 32 -p {threads} > {output.orp}
-        else
-            zcat -f {params.orp_fwd} {params.orp_rev} > {output.orp}
-        fi
+        #merge unpaired and gzip
+        zcat -f {params.orp_fwd} {params.orp_rev} | pigz -b 32 -p {threads} > {output.orp}
         # delete intermediate files
         rm {params.orp_fwd} {params.orp_rev}
     """
@@ -275,7 +269,7 @@ rule readcounts:
     input:
         raw = expand(join(DATA_DIR, "{sample}_" + READ_SUFFIX[0] + EXTENSION), sample=SAMPLE_PREFIX),
         dedup = expand(join(PROJECT_DIR, "01_processing/01_dedup/{sample}_1.fq.gz"), sample=SAMPLE_PREFIX),
-        trimmed = expand(join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_val_1.fq" + gz_ext), sample=SAMPLE_PREFIX),
+        trimmed = expand(join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_1_val_1.fq.gz"), sample=SAMPLE_PREFIX),
         rmhost = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_1.fq.gz"), sample=SAMPLE_PREFIX),
         orphans = expand(join(PROJECT_DIR, "01_processing/05_sync/{sample}_orphans.fq.gz"), sample=SAMPLE_PREFIX)
     output:
