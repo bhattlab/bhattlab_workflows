@@ -240,7 +240,7 @@ rule instrain_profile:
         logfile = join(outdir, "instrain_profile/{sample}/log/log.log"),
         drep_fasta_folder = join(outdir, "dereplicated_genomes"),
         min_reads = instrain_min_reads
-    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.5--pyhdfd78af_0"
     shell: """
         # skip if readcounts are less than the min reads
         rc="$(cat {input.readcounts})"

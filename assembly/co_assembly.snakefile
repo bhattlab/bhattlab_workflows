@@ -186,7 +186,7 @@ rule spades:
         time = lambda wildcards, attempt: 24 * attempt,
         mem = lambda wildcards, attempt: 100 * attempt
     threads: 8
-    singularity: "docker://quay.io/biocontainers/spades:3.13.1--h2d02072_2"
+    singularity: "docker://quay.io/biocontainers/spades:3.15.3--h95f258a_1"
     params:
         outdir = join(PROJECT_DIR, "02_metaspades/{group}/"),
         reads_command = lambda wildcards: get_spades_reads_command(sample_dict[wildcards.sample])

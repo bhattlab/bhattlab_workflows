@@ -143,7 +143,7 @@ rule instrain_compare_filtered:
     params: 
         outdir = join(outdir, "instrain_compare_filtered"),
         sed_string = join(outdir, "instrain_profile/")
-    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.5--pyhdfd78af_0"
     shell: """
         if [[ $(wc -l <{input.filtered_samples_file}) -ge 2 ]]; then
             files="$(cut -f1 {input.filtered_samples_file} | sed "s#^#{params.sed_string}#g" | tr "\n" " ")"
@@ -168,7 +168,7 @@ rule instrain_genome_wide_filtered:
     params: 
         fasta_name = join(outdir, "ref.fa"),
         outdir = join(outdir, "instrain_compare_filtered")
-    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.5--pyhdfd78af_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain genome_wide -i {params.outdir} -s {params.fasta_name}
@@ -187,7 +187,7 @@ rule instrain_plot_filtered:
         join(outdir, "instrain_compare_filtered/figures/inStrainCompare_dendrograms.pdf")
     params: 
         outdir = join(outdir, "instrain_compare_filtered")
-    singularity: "docker://quay.io/biocontainers/instrain:1.5.3--py_0"
+    singularity: "docker://quay.io/biocontainers/instrain:1.5.5--pyhdfd78af_0"
     shell: """
         if [[ $(wc -l <{input}) -ge 2 ]]; then
             inStrain plot -i {params.outdir}

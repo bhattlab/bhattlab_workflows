@@ -56,20 +56,21 @@ rule metaphlan3:
         join(outdir, "results", "{samp}.txt")
     params:
         bowtie2out = join(outdir, "bowtie2files", "{samp}.out"),
-	bowtie2out_folder = join(outdir, 'bowtie2files'),
+        bowtie2out_folder = join(outdir, 'bowtie2files'),
         db = db
     threads: 8
     resources: 
         mem = 64, 
         time = 24
+    singularity: "docker://quay.io/biocontainers/metaphlan:3.0.13--pyhb7b1952_0"
     shell: """
-        # need to remove bowtie2 outfile if it exists already
-        rm -f {params.bowtie2out}
-	# create directory if it doesnt exist
-	mkdir -p {params.bowtie2out_folder}
+    # need to remove bowtie2 outfile if it exists already
+    rm -f {params.bowtie2out}
+    # create directory if it doesnt exist
+    mkdir -p {params.bowtie2out_folder}
 
-        metaphlan {input.r1},{input.r2} --nproc {threads} --input_type fastq \
-            --bowtie2db {params.db} --bowtie2out {params.bowtie2out} -o {output}
+    metaphlan {input.r1},{input.r2} --nproc {threads} --input_type fastq \
+        --bowtie2db {params.db} --bowtie2out {params.bowtie2out} -o {output}
     """
 
 rule merge_tables:
@@ -80,7 +81,7 @@ rule merge_tables:
         t2 = join(outdir, "merged_abundance_table_species.txt"),
     params:
         results_dir = join(outdir, "results")
-
+    singularity: "docker://quay.io/biocontainers/metaphlan:3.0.13--pyhb7b1952_0"
     shell: """
         merge_metaphlan_tables.py  {params.results_dir}/*.txt > {output.t1}
         grep -E "s__|clade" {output.t1} | sed 's/^.*s__//g' | cut -f2 --complement | sed -e 's/clade_name/species/g' > {output.t2}

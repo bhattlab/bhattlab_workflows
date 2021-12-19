@@ -61,7 +61,7 @@ rule compute:
     threads:1
     resources: 
         time=lambda wildcards, attempt: 12 * attempt,
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/sourmash:4.2.2--hdfd78af_0"
     shell: """
         sourmash compute --scaled 10000 \
         {input} -o {output} -k 21,31,51
@@ -80,7 +80,7 @@ rule index:
         outfolder_k51="k51",
         filestr="*.sig",
         outdir=join(outdir, "03_sourmash_signatures")
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/sourmash:4.2.2--hdfd78af_0"
     shell: """
         cd {params.outdir}
         sourmash index {params.outfolder_k21} {params.filestr} -k21
@@ -101,7 +101,7 @@ rule compare_k21:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/sourmash:4.2.2--hdfd78af_0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k21} -k 21 -p {threads}
@@ -120,7 +120,7 @@ rule compare_k31:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/sourmash:4.2.2--hdfd78af_0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k31} -k 31 -p {threads}
@@ -139,7 +139,7 @@ rule compare_k51:
     resources:
         time=6,
         mem=256
-    singularity: "docker://quay.io/biocontainers/sourmash:3.4.0--0"
+    singularity: "docker://quay.io/biocontainers/sourmash:4.2.2--hdfd78af_0"
     shell: """
         cd {params.sigdir}
         sourmash compare {params.filestr} -o {params.outfile} --csv {output.k51} -k 51 -p {threads}

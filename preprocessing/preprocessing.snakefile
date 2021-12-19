@@ -63,7 +63,7 @@ rule pre_fastqc:
     resources:
             time = 6,
             mem = 32
-    singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
+    singularity: "docker://quay.io/biocontainers/fastqc:0.11.9--hdfd78af_1"
     benchmark: join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc/{sample}_time.txt")
     shell: """
         mkdir -p {params.outdir}
@@ -77,7 +77,7 @@ rule pre_multiqc:
     params:
         indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_fastqc"),
         outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/pre_multiqc/")
-    singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
+    singularity: "docker://quay.io/biocontainers/multiqc:1.11--pyhdfd78af_0"
     shell: """
         multiqc --force {params.indir} -o {params.outdir}
     """
@@ -130,7 +130,7 @@ rule trim_galore:
         min_len = config['trim_galore']['min_read_length'],
         outdir  = join(PROJECT_DIR, "01_processing/02_trimmed/"),
         gz_output = str(gz_ext == '.gz').lower()
-    singularity: "docker://quay.io/biocontainers/trim-galore:0.6.5--0"
+    singularity: "docker://quay.io/biocontainers/trim-galore:0.6.7--hdfd78af_0"
     benchmark: join(PROJECT_DIR, "01_processing/02_trimmed/{sample}_time.txt")
     shell: """
         mkdir -p {params.outdir}
@@ -200,7 +200,7 @@ rule post_fastqc:
     resources:
             time = 6,
             mem = 32
-    singularity: "docker://quay.io/biocontainers/fastqc:0.11.8--1"
+    singularity: "docker://quay.io/biocontainers/fastqc:0.11.9--hdfd78af_1"
     benchmark: join(PROJECT_DIR, "01_processing/00_qc_reports/post_fastqc/{sample}_{read}_time.txt")
     shell: """
         mkdir -p {params.outdir}
@@ -218,7 +218,7 @@ rule post_multiqc:
     params:
         indir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_fastqc"),
         outdir = join(PROJECT_DIR,  "01_processing/00_qc_reports/post_multiqc/")
-    singularity: "docker://quay.io/biocontainers/multiqc:1.7--py_2"
+    singularity: "docker://quay.io/biocontainers/multiqc:1.11--pyhdfd78af_0"
     shell: """
         multiqc --force {params.indir} -o {params.outdir}
     """

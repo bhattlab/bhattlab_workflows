@@ -42,10 +42,9 @@ rule dump:
     resources:
         time = 6,
         mem = 64
-#    singularity: "docker://quay.io/biocontainers/sra-tools:2.10.7--pl526haddd2b5_1"
+    singularity: "docker://quay.io/biocontainers/sra-tools:2.11.0--pl5262h314213e_1"
     threads: 4
-    log: 
-        join("{sample}", 'log.txt')
+    log: join("{sample}", 'log.txt')
     shell: """
     # remove previous directory
     rm -rf {wildcards.sample}
