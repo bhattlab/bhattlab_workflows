@@ -1,6 +1,6 @@
 #!/bin/bash
 
-root="/labs/asbhatt/cosn/bhattlab_workflows/metariboseq"
+root="/labs/asbhatt/cosn/github.com/bhattlab/bhattlab_workflows/metariboseq"
 
 container="${root}/singularity/$1"
 nextflow=$2
@@ -21,6 +21,13 @@ case "$1" in
 "scg-all")
     configs="$configs,${root}/nextflow-configs/slurm.config"
     paramsfile="${params}/params-all.yml"
+    ;;
+"mpgriesh-all-local")
+    paramsfile="${params}/params-mpgriesh.yml"
+    ;;
+"mpgriesh-all")
+    configs="$configs,${root}/nextflow-configs/slurm.config"
+    paramsfile="${params}/params-mpgriesh.yml"
     ;;
 *)
     echo "unrecognised mode: $1"

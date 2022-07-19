@@ -1,108 +1,118 @@
 #!/usr/bin/env nextflow
 
-workflow metagenomic_trim {
-    take:
-        toTrim
-    main:
-        adapterTrim(toTrim)
-    emit:
-        adapterTrim.out.trimmed
-}
-
-workflow metariboseq_trim {
-    take:
-        toTrim
-    main:
-        adapterTrim(toTrim)
-    emit:
-        adapterTrim.out.trimmed
-}
-
 workflow {
-    metariboseqTrim = Channel.from(params.sampleSpecs)
-        .map { [key: it.name, path: it.metariboseq, metagenomic_key: it.metagenomic] }
-
-    // Dedup metagenomic inputs since they can be repeated for multiple samples
-    // and the metagenomic assembly is by far the most expensive step so it makes
+    // Dedup inputs since they can be repeated for multiple samples and the
+    // metagenomic assembly is by far the most expensive step so it makes
     // sense to avoid reprocessing the same data.
-    // Note that the key field is the same as the file for the metagenomic
-    // data at this stage.
-    metagenomicTrim = Channel.from(params.sampleSpecs)
-        .map { [key: it.metagenomic, path: it.metagenomic, metagenomic_key: it.metagenomic] }
+    metariboseq_files = Channel.from(params.sampleSpecs)
+        .map { [sample_type: 'metariboseq', path: it.metariboseq] }
         .unique()
 
-    main:
-        metagenomic = metagenomic_trim(metagenomicTrim)
-        metariboseq = metariboseq_trim(metariboseqTrim)
-        .map { [it[0], it[1], it[2]]} // key, trimmed, mag
+    metagenomic_files = Channel.from(params.sampleSpecs)
+        .map { [sample_type: 'metagenomic', path: it.metagenomic] }
+        .unique()
 
-        assemblies = metagenomicAssembly(metagenomic)
+    metariboseq_samples = Channel.from(params.sampleSpecs)
+        .map { [it.metariboseq, it.metagenomic] }
+
+    main:
+        adapterTrim(metariboseq_files.concat(metagenomic_files))
+        trimmed = adapterTrim.out.trimmed.branch{
+            metagenomic: it[0] == 'metagenomic'
+            metariboseq: it[0] == 'metariboseq'
+        }
+
+        assemblies = metagenomicAssembly(trimmed.metagenomic
+            .map{[it[1], it[2]]}) // drop sample_type
         indexed = bowtieIndex(assemblies)
-             .map { [it[0], it[1], it[2]] } // key, assembly, mag
+
+        metariboseq = trimmed.metariboseq
+            .map{[it[1], it[2]]} // drop sample_type
 
         // combine the metagenomic assemblies with the metariboseq samples
-        // that are to aligned against them.
-        combined = metariboseq.combine(indexed, by: 2).map{
-            {[key: it[1], trimmed: it[2], contigs: it[4], metagenomic: it[0]]}
-        }
+        // that are to be aligned against them.
+        combined = metariboseq_samples.combine(metariboseq, by: 0)
+            .map{ [it[1], it[0], it[2]]} // move the sample name to index 0
+            .combine(indexed, by: 0)
+            .map{ [it[1], it[2], it[3]]} // sample name, trimmed riboseq, mag
+
         combined.view()
-        alignmtMetariboseqAgainstAssemblies(combined)
+
+        alignmtMetariboseqAgainstAssemblies(combined).view()
 }
 
 // Trim adapters from all samples and save the trim report to the results
 // directory.
 process adapterTrim {
-   publishDir "${params.resultsPrefix}", pattern: "*trimming_report.txt", mode: "copy"
+    cpus "${params.trimGaloreCPUs}"
+    publishDir "${params.resultsPrefix}", pattern: "*trimming_report.txt", mode: "copy"
 
     input:
-    tuple val(key), val(trimpath), val(metagenomic)
+    tuple val(type), val(path)
 
     output:
-    tuple val(key), path("${trimpath}_trimmed.fq.gz"), val(metagenomic), emit: trimmed
+    tuple val(type), val(path), path("${path}_trimmed.fq.gz"), emit: trimmed
     // The report is not needed after this process has run, simply publish it.
-    path("${trimpath}.fq.gz_trimming_report.txt"), emit: report 
+    path("${path}.fq.gz_trimming_report.txt"), emit: report 
 
     shell:
     '''
-    trim_galore !{params.inputPrefix}/!{trimpath}.fq.gz
+    trim_galore !{params.trimGaloreOptions} !{params.inputPrefix}/!{path}.fq.gz
     '''
+
+    stub:
+    """
+    touch "${path}_trimmed.fq.gz" "${path}.fq.gz_trimming_report.txt"
+    """
 }
 
 // Create an assembly from the metagenomic reads that will be used for
 // both metagenomic and metariboseq alignments. Build a bowtie index for
 // the MAG.
 process metagenomicAssembly {
+    cpus "${params.assemblyCPUs}" 
     memory "${params.assemblyMemory}"
-    cpus "${params.assemblyCPUs}"
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple val(key), path(trimmed), val(metagenomic)
+    tuple val(name), path(trimmed)
 
     output:
-    tuple val(key), path("${key}-assembly"), val(metagenomic)
+    tuple val(name), path("${name}-assembly")
 
     shell:
     '''
-    spades.py !{params.spadesOptions} -o !{key}-assembly -s !{trimmed}
+    spades.py !{params.spadesOptions} -o !{name}-assembly -s !{trimmed}
     '''
+
+    stub:
+    """
+    mkdir "${name}-assembly"
+    touch "${name}-assembly/contigs.fasta"
+    """
+
 }
 
 // Build a bowtie index for every assembly.
 process bowtieIndex {
-    cpus "${params.assemblyCPUs}"
-    publishDir "${params.resultsPrefix}/${key}-assembly/", mode: "copy"
+    cpus "${params.alignmentCPUs}"
+    publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple val(key), path(assembly), val(metagenomic)
+    tuple val(name), path(assembly)
 
     output:
-    tuple val(key), path(assembly), val(metagenomic)
+    tuple val(name), path(assembly)
   
     shell:
     '''
     bowtie-build !{params.bowtieIndexOptions} !{assembly}/contigs.fasta !{assembly}/contigs
     '''
+
+    stub:
+    """
+    touch "${assembly}/contigs.1.ebwt"
+    """
 }
 
 
@@ -110,18 +120,23 @@ process bowtieIndex {
 // assembly.
 process alignmtMetariboseqAgainstAssemblies {
     memory "${params.alignmentMemory}"
-    cpus "${params.alignmentCPUs}"
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple val(key), path(trimmed), path(assembly), val(metagenomic)
+    tuple val(name), path(trimmed), path(assembly)
 
     output:
-    path("${key}.bam")
+    path("${name}.bam")
 
     shell:
     '''
-    bowtie !{params.bowtieAlignmentOptions} --sam -l 20 !{assembly}/contigs <(zcat !{trimmed}) !{key}.sam
-    samtools view -b -F 4 !{key}.sam | samtools sort - > !{key}.bam
+    bowtie !{params.bowtieAlignmentOptions} --sam -l 20 !{assembly}/contigs <(zcat !{trimmed}) !{name}.sam
+    samtools view -b -F 4 !{name}.sam | samtools sort - > !{name}.bam
     '''
+
+    stub:
+    """
+    touch "${name}.bam"
+    """
+
 }

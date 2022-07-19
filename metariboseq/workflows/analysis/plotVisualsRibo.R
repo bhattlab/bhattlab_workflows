@@ -1,4 +1,4 @@
-#Takes arguments - 1: fasta file, 2: Ribo bam file
+#Takes arguments - 1: fasta RData file, 2: Ribo Rdata bam file, 3: Counts Rdata file
 library(riboSeqR)
 library(Rsamtools)
 
@@ -96,42 +96,51 @@ plotCDS <- function (coordinates, riboDat, lengths = 27, min5p = -20, max5p = 20
     invisible(lenmatz)
 }
 
+chlamyFastaState <- (args[1])
+load(chlamyFastaState) # fastaCDS from prepare-fastaCDS.R
 
-#Load in asssembly and annotate ORFs
-chlamyFasta <- (args[1])
-fastaCDS <- findCDS(fastaFile = chlamyFasta,startCodon = c("ATG"),stopCodon = c("TAG", "TAA", "TGA"))
+ribofilesState <-  (args[2])
+load(ribofilesState) # riboDat from prepare-ribodat.R
 
-#Load in bam files
-ribofiles <-  args[2]
-riboDat <- readRibodata(ribofiles, replicates = 1)
-
-#Count reads across ORFs, keeping track of what frame they fall into
-fCs <- frameCounting(riboDat, fastaCDS, length = c(20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38))
-fS <- readingFrame(rC = fCs, lengths = c(20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38))
+countsState <- (args[3])
+load(countsState) # fCs, fs from prepare-counts.R
 
 #frame plot
 pdf('allfSshift.pdf')
 plotFS(fS)
 dev.off()
 
-ffCs <- filterHits(fCs, lengths = c(28,31,35), frames = 0, hitMean = 10, unqhitMean = 1, fS = fS)
-
-#Metagene plots at different read lengths
-pdf('plotCDS31filt.pdf')
-plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 31,min5p = -50, max3p = 50)
-dev.off()
-
-pdf('plotCDS28filt.pdf')
-plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 28,min5p = -50, max3p = 50)
-dev.off()
-
-pdf('plotCDS35filt.pdf')
-plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 35,min5p = -50, max3p = 50)
-dev.off()
-
 #Plot histogram of read lengths
 pdf('histogram.pdf')
 lengthDist(riboDat, lwd = 3, cex = 1.5, cex.lab = 1.5, cex.axis = 1.5, ylim = c(0, 0.6), xlim = c(20, 50))
 dev.off()
+
+tryCatch(
+    {
+    ffCs <- filterHits(fCs, lengths = c(28,31,35), frames = 0, hitMean = 10, unqhitMean = 1, fS = fS)
+    print(ffCs@CDS)
+    },
+    error=function(cond) {
+      message("....filterHits failed, likely low coverage")
+      message(cond)
+      message("")
+    }
+)
+
+if (exists("ffCs")) {
+    #Metagene plots at different read lengths
+    pdf('plotCDS31filt.pdf')
+    plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 31,min5p = -50, max3p = 50)
+    dev.off()
+
+    pdf('plotCDS28filt.pdf')
+    plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 28,min5p = -50, max3p = 50)
+    dev.off()
+
+    pdf('plotCDS35filt.pdf')
+    plotCDS(coordinates = ffCs@CDS, riboDat = riboDat, lengths = 35,min5p = -50, max3p = 50)
+    dev.off()
+}
+
 
 
