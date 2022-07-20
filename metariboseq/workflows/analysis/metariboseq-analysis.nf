@@ -11,7 +11,7 @@ workflow {
 
         prepare_riboDat = Channel.from(params.sampleSpecs)
             .map{ [ name: it.name,
-                    metariboseq: "${params.resultsPrefix}/" + it.name + ".bam",
+                    metariboseq: "${params.resultsPrefix}/" + it.metariboseq + ".bam",
                     script: "${params.analysisScriptDir}/prepare-ribodat.R"] }
 
         samples = Channel.from(params.sampleSpecs)
