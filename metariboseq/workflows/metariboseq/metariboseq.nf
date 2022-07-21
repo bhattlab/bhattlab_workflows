@@ -1,107 +1,142 @@
 #!/usr/bin/env nextflow
 
-// Create two channels, one each for the metagenomic and metariboseq
-// samples, in order to label each sample file appropriately.
-metagenomicTrim = Channel.from(params.sampleSpecs)
-    .map { [name:it.name, type:"metagenomic", file:it.metagenomic] }
+workflow {
+    // Dedup inputs since they can be repeated for multiple samples and the
+    // metagenomic assembly is by far the most expensive step so it makes
+    // sense to avoid reprocessing the same data.
+    metariboseq_files = Channel.from(params.sampleSpecs)
+        .map { [sample_type: 'metariboseq', path: it.metariboseq] }
+        .unique()
 
-metariboseqTrim = Channel.from(params.sampleSpecs)
-    .map { [name:it.name, type:"metariboseq", file:it.metariboseq] }
+    metagenomic_files = Channel.from(params.sampleSpecs)
+        .map { [sample_type: 'metagenomic', path: it.metagenomic] }
+        .unique()
 
-// Concatenate the labeled samples into a single channel for trimming.
-// For n samples this contain 2*n entries, one for metagenomic and one
-// for metariboseq data.
-toTrim = metagenomicTrim.concat(metariboseqTrim)
+    metariboseq_samples = Channel.from(params.sampleSpecs)
+        .map { [it.metariboseq, it.metagenomic] }
+
+    main:
+        adapterTrim(metariboseq_files.concat(metagenomic_files))
+        trimmed = adapterTrim.out.trimmed.branch{
+            metagenomic: it[0] == 'metagenomic'
+            metariboseq: it[0] == 'metariboseq'
+        }
+
+        assemblies = metagenomicAssembly(trimmed.metagenomic
+            .map{[it[1], it[2]]}) // drop sample_type
+        indexed = bowtieIndex(assemblies)
+
+        metariboseq = trimmed.metariboseq
+            .map{[it[1], it[2]]} // drop sample_type
+
+        // combine the metagenomic assemblies with the metariboseq samples
+        // that are to be aligned against them.
+        combined = metariboseq_samples.combine(metariboseq, by: 0)
+            .map{ [it[1], it[0], it[2]]} // move the sample name to index 0
+            .combine(indexed, by: 0)
+            .map{ [it[1], it[2], it[3]]} // sample name, trimmed riboseq, mag
+
+        combined.view()
+
+        alignmtMetariboseqAgainstAssemblies(combined).view()
+}
 
 // Trim adapters from all samples and save the trim report to the results
 // directory.
-process adapterTrim  {
+process adapterTrim {
+    cpus "${params.trimGaloreCPUs}"
     publishDir "${params.resultsPrefix}", pattern: "*trimming_report.txt", mode: "copy"
 
     input:
-    val sample from toTrim
+    tuple val(type), val(path)
 
     output:
-        tuple val("${sample.name}"), sample, path("${sample.file}_trimmed.fq.gz") into trimmedAll
-        path ("${sample.file}.fq.gz_trimming_report.txt")
+    tuple val(type), val(path), path("${path}_trimmed.fq.gz"), emit: trimmed
+    // The report is not needed after this process has run, simply publish it.
+    path("${path}.fq.gz_trimming_report.txt"), emit: report 
 
     shell:
     '''
-    trim_galore !{params.inputPrefix}/!{sample.file}.fq.gz
+    trim_galore !{params.trimGaloreOptions} !{params.inputPrefix}/!{path}.fq.gz
     '''
+
+    stub:
+    """
+    touch "${path}_trimmed.fq.gz" "${path}.fq.gz_trimming_report.txt"
+    """
 }
 
-// Create a channel with all samples that are to be aligned and a separate
-// channel with the samples to be assembled. Only the metagenomic samples
-// are used to generate assemblies.
-trimmedAll.into{ alignmentCandidates; assemblyCandidates}
-toAssemble = assemblyCandidates.filter { it[1].type == "metagenomic" }
-
 // Create an assembly from the metagenomic reads that will be used for
-// both metagenomic and metariboseq alignments.
+// both metagenomic and metariboseq alignments. Build a bowtie index for
+// the MAG.
 process metagenomicAssembly {
+    cpus "${params.assemblyCPUs}" 
     memory "${params.assemblyMemory}"
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple name, sample, path(trimmed) from toAssemble
+    tuple val(name), path(trimmed)
 
     output:
-    tuple name, sample, path("${sample.name}-assembly") into assembled
-    path("${sample.name}-assembly/contigs.fasta")
+    tuple val(name), path("${name}-assembly")
 
     shell:
     '''
-    spades.py !{params.spadesOptions} -o !{sample.name}-assembly -s !{trimmed}
+    spades.py !{params.spadesOptions} -o !{name}-assembly -s !{trimmed}
     '''
+
+    stub:
+    """
+    mkdir "${name}-assembly"
+    touch "${name}-assembly/contigs.fasta"
+    """
+
 }
 
 // Build a bowtie index for every assembly.
 process bowtieIndex {
-    publishDir "${params.resultsPrefix}/${sample.name}-assembly/", mode: "copy"
+    cpus "${params.alignmentCPUs}"
+    publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple name, sample, path(assembly) from assembled
+    tuple val(name), path(assembly)
 
     output:
-    tuple name, sample, path(assembly), path("contigs.*") into assembledAndIndexed
-    path("contigs.*")
-
+    tuple val(name), path(assembly)
+  
     shell:
     '''
-    bowtie-build !{params.bowtieIndexOptions} !{assembly}/contigs.fasta contigs
+    bowtie-build !{params.bowtieIndexOptions} !{assembly}/contigs.fasta !{assembly}/contigs
     '''
+
+    stub:
+    """
+    touch "${assembly}/contigs.1.ebwt"
+    """
 }
 
-// Combine the assembly information with every sample to be aligned using the
-// name of the sample as the key. The resulting channel will contain 2*n records
-// for n samples, one record for every metagenomic and metariboseq data file.
-// Each of those records is paired with the corresponding assembly by the
-// comebine operator.
-toAlign = alignmentCandidates.combine(assembledAndIndexed, by: [0]).map {
-    // it[1] is the sample object.
-    // it[2] the name of the trimmed output file.
-    // it[3] is the sample object again, which is dropped.
-    // it[4] is the name of the directory containing the assembly.
-    // it[5] the bowtie index for the assembly.
-    [ it[1], it[2], it[4], it[5] ]
-}
 
 // Alignment every input file, metagenomic and metariboseq against the
 // assembly.
-process alignment {
+process alignmtMetariboseqAgainstAssemblies {
     memory "${params.alignmentMemory}"
     publishDir "${params.resultsPrefix}", mode: "copy"
 
     input:
-    tuple sample, path(trimmed), path(assembly), path(index) from toAlign
+    tuple val(name), path(trimmed), path(assembly)
 
     output:
-    path("${sample.file}.bam")
+    path("${name}.bam")
 
     shell:
     '''
-    bowtie !{params.bowtieAlignmentOptions} --sam -l 20 contigs <(zcat !{trimmed}) !{sample.file}.sam
-    samtools view -b -F 4 !{sample.file}.sam | samtools sort - > !{sample.file}.bam
+    bowtie !{params.bowtieAlignmentOptions} --sam -l 20 !{assembly}/contigs <(zcat !{trimmed}) !{name}.sam
+    samtools view -b -F 4 !{name}.sam | samtools sort - > !{name}.bam
     '''
+
+    stub:
+    """
+    touch "${name}.bam"
+    """
+
 }
