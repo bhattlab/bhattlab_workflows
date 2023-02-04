@@ -1,0 +1,1 @@
+docker push ghcr.io/bhattlab/bhattlab-ubuntu-focal-preprocessing:latest
