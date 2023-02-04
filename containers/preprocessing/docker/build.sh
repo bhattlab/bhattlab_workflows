@@ -1,2 +1,2 @@
-docker build --platform=linux/amd64 -t ghcr.io/bhattlab/bhattlab-ubuntu-focal-preprocessing .
+docker build --platform=linux/amd64 -t $(cat docker-image-name) .
 
