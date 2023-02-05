@@ -1,0 +1,15 @@
+Bootstrap: docker
+From: ghcr.io/bhattlab/micromamba-focal-preprocessing:latest
+
+%environment
+    export PATH=/opt/conda/bin:$PATH
+
+%help
+   This is the bhattlab preprocessing container with common tools installed.
+
+%runscript
+    fastqc --version
+    multiqc --version
+    bwa
+    samtools --version
+    trim_galore --version
