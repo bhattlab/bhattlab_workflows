@@ -1,1 +1,4 @@
-docker build -t ghcr.io/bhattlab/bhattlab-metariboseq .
+#!/bin/bash
+
+docker build --platform=linux/amd64 \
+    -t ghcr.io/bhattlab/bhattlab-metariboseq .
